@@ -1,0 +1,357 @@
+{% extends "base.html" %}
+
+{% block title %}990 Prospect Explorer - Home{% endblock %}
+
+{% block content %}
+<div class="text-center mb-4">
+    <h1 class="display-6">990 Prospect Explorer</h1>
+    <p class="lead text-muted">Find who funds nonprofits like yours using public IRS 990 data.</p>
+</div>
+
+<!-- ===== How It Works ===== -->
+<div class="bg-light rounded-3 p-4 mb-4">
+    <h5 class="text-center mb-3"><i class="bi bi-lightbulb"></i> How It Works</h5>
+    <div class="row g-3 text-center">
+        <div class="col-md-3">
+            <div class="workflow-step">
+                <div class="workflow-number">1</div>
+                <h6>Create a Profile</h6>
+                <small class="text-muted">Enter your org's EIN to auto-generate a search profile with keywords and NTEE codes.</small>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="workflow-step">
+                <div class="workflow-number">2</div>
+                <h6>Run the Pipeline</h6>
+                <small class="text-muted">Finds organizations similar to yours, then discovers which foundations fund them.</small>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="workflow-step">
+                <div class="workflow-number">3</div>
+                <h6>Review Prospects</h6>
+                <small class="text-muted">See ranked funders with evidence: who they funded, how much, and mission alignment.</small>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="workflow-step">
+                <div class="workflow-number">4</div>
+                <h6>Draft a Letter</h6>
+                <small class="text-muted">AI generates a first-draft grant letter tailored to each foundation's giving patterns.</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ===== New Prospect Search (prominent entry point) ===== -->
+<div class="row mb-4">
+    <div class="col-lg-8 mx-auto">
+        <a href="{{ url_for('profile_new') }}" class="card text-decoration-none border-success shadow-sm">
+            <div class="card-body text-center py-4">
+                <i class="bi bi-search-heart fs-1 text-success"></i>
+                <h4 class="mt-2 text-success">New Prospect Search</h4>
+                <p class="text-muted mb-0">Search for your nonprofit, confirm details, and generate a foundation prospect report.</p>
+            </div>
+        </a>
+    </div>
+</div>
+
+<!-- ===== Getting Started (no profiles yet) ===== -->
+{% if not profiles %}
+<div class="alert alert-info mb-4">
+    <i class="bi bi-info-circle"></i> <strong>Getting Started:</strong>
+    You don't have any search profiles yet. Start by entering your organization's EIN below to generate one, or use the <a href="{{ url_for('profile_new') }}">New Prospect Search</a> above.
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-lg-6 mx-auto">
+        <div class="card border-secondary">
+            <div class="card-header bg-secondary text-white">
+                <i class="bi bi-file-earmark-plus"></i> Step 1: Generate Your Search Profile
+            </div>
+            <div class="card-body">
+                <p class="text-muted small">Enter your nonprofit's EIN. We'll look it up on ProPublica and auto-generate a search profile with keywords, NTEE codes, and mission statement.</p>
+                <form action="{{ url_for('profile_gen') }}" method="post">
+                    <div class="input-group">
+                        <input type="text" name="ein" class="form-control form-control-lg" placeholder="Your organization's EIN (e.g. 33-4593800)" required>
+                        <button type="submit" class="btn btn-secondary btn-lg">
+                            <i class="bi bi-magic"></i> Generate
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- ===== Main Action: Full Pipeline ===== -->
+{% if profiles %}
+<div class="row g-4 mb-4">
+    <div class="col-lg-10 mx-auto">
+        <div class="card border-warning shadow-sm">
+            <div class="card-header bg-warning text-dark fs-5">
+                <i class="bi bi-diagram-3"></i> Run Full Pipeline
+                <small class="float-end text-dark-emphasis fw-normal">Recommended starting point</small>
+            </div>
+            <div class="card-body">
+                <p class="text-muted">Select your search profile and run the pipeline. It will find similar nonprofits, identify their funders, cross-reference board members, and rank prospects by relevance.</p>
+                <form action="{{ url_for('pipeline') }}" method="post">
+                    <div class="row g-3 align-items-end">
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Search Profile</label>
+                            <select name="profile" class="form-select" required>
+                                {% for key, p in profiles.items() %}
+                                <option value="{{ key }}">{{ p.name }} ({{ p.state }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Pipeline Depth</label>
+                            <select name="depth" class="form-select">
+                                <option value="1">1 - Comps only</option>
+                                <option value="2" selected>2 - Comps + Funders</option>
+                                <option value="3">3 - Full (slow)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Max Comps</label>
+                            <input type="number" name="limit" class="form-control" value="25" min="5" max="50">
+                        </div>
+                        <div class="col-md-2">
+                            <div class="form-check mb-1">
+                                <input class="form-check-input" type="checkbox" name="officers" id="pipeline-officers" checked>
+                                <label class="form-check-label" for="pipeline-officers">Officers</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="ai_score" id="pipeline-ai-score">
+                                <label class="form-check-label" for="pipeline-ai-score">
+                                    <i class="bi bi-stars"></i> AI Scoring
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <button type="submit" class="btn btn-warning btn-lg w-100">
+                                <i class="bi bi-play-fill"></i> Run
+                            </button>
+                        </div>
+                    </div>
+                    <div class="mt-2">
+                        <small class="text-muted">
+                            <strong>Officers:</strong> Fetches board members from 990 XML (enables cross-referencing).
+                            <strong>AI Scoring:</strong> Uses Claude to score mission alignment (requires API key).
+                            <strong>Depth 2</strong> is recommended for most searches.
+                        </small>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- ===== Tools Row ===== -->
+<div class="row g-4 mb-4">
+    <!-- Profile Generator (always visible) -->
+    {% if profiles %}
+    <div class="col-md-6 col-lg-4">
+        <div class="card h-100 border-secondary">
+            <div class="card-header bg-secondary text-white">
+                <i class="bi bi-file-earmark-plus"></i> Generate Search Profile
+            </div>
+            <div class="card-body">
+                <p class="card-text text-muted small">Create a new search profile from any org's EIN. Extracts keywords, NTEE codes, and mission from ProPublica.</p>
+                <form action="{{ url_for('profile_gen') }}" method="post">
+                    <div class="mb-3">
+                        <label class="form-label">Organization EIN</label>
+                        <input type="text" name="ein" class="form-control" placeholder="e.g. 33-4593800" required>
+                    </div>
+                    <button type="submit" class="btn btn-secondary w-100">
+                        <i class="bi bi-magic"></i> Generate Profile
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Org Lookup -->
+    <div class="col-md-6 col-lg-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <i class="bi bi-building"></i> Quick Org Lookup
+            </div>
+            <div class="card-body">
+                <p class="card-text text-muted small">Look up any nonprofit by EIN to see financial details, officers, and filing history.</p>
+                <form id="org-lookup-form" class="row g-2">
+                    <div class="col-8">
+                        <input type="text" id="org-ein-input" class="form-control" placeholder="e.g. 91-1508191" required>
+                    </div>
+                    <div class="col-4">
+                        <button type="submit" class="btn btn-outline-secondary w-100">
+                            <i class="bi bi-arrow-right"></i> Go
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Grant Draft -->
+    {% if profiles %}
+    <div class="col-md-6 col-lg-4">
+        <div class="card h-100 border-danger">
+            <div class="card-header bg-danger text-white">
+                <i class="bi bi-pencil-square"></i> Grant Draft (AI)
+            </div>
+            <div class="card-body">
+                <p class="card-text text-muted small">Generate a first-draft grant letter to a foundation based on their giving patterns. Requires Anthropic API key.</p>
+                <form action="{{ url_for('draft') }}" method="post">
+                    <div class="mb-3">
+                        <label class="form-label">Foundation EIN</label>
+                        <input type="text" name="ein" class="form-control" placeholder="e.g. 56-2206524" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Your Profile</label>
+                        <select name="profile" class="form-select" required>
+                            {% for key, p in profiles.items() %}
+                            <option value="{{ key }}">{{ p.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-danger w-100 text-white">
+                        <i class="bi bi-pencil-square"></i> Generate Draft
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- ===== Advanced Tools (collapsed) ===== -->
+<div class="mb-4">
+    <p class="text-center">
+        <a class="btn btn-sm btn-outline-secondary" data-bs-toggle="collapse" href="#advancedTools">
+            <i class="bi bi-tools"></i> Advanced: Individual Layer Tools
+        </a>
+    </p>
+    <div class="collapse" id="advancedTools">
+        <p class="text-center text-muted small mb-3">These tools let you run each layer of the pipeline individually. Most users should use the Full Pipeline above instead.</p>
+        <div class="row g-4">
+            <!-- Layer 1: Quick Search -->
+            <div class="col-md-6 col-lg-4">
+                <div class="card h-100 border-primary">
+                    <div class="card-header bg-primary text-white">
+                        <i class="bi bi-search"></i> Layer 1: Find Similar Orgs
+                    </div>
+                    <div class="card-body">
+                        <p class="card-text text-muted small">Search for nonprofits by keyword. Returns organizations with financial summaries from their latest 990 filing.</p>
+                        <form action="{{ url_for('search') }}" method="post">
+                            <div class="mb-3">
+                                <label class="form-label">Search Query</label>
+                                <input type="text" name="query" class="form-control" placeholder="e.g. math education" required>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-6">
+                                    <label class="form-label">State</label>
+                                    <input type="text" name="state" class="form-control" placeholder="e.g. WA" maxlength="2">
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label">Max Results</label>
+                                    <input type="number" name="limit" class="form-control" value="25" min="1" max="100">
+                                </div>
+                            </div>
+                            <div class="form-check mb-3">
+                                <input class="form-check-input" type="checkbox" name="officers" id="search-officers">
+                                <label class="form-check-label" for="search-officers">Include officers/directors</label>
+                            </div>
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="bi bi-search"></i> Search
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Layer 2: Find Funders -->
+            <div class="col-md-6 col-lg-4">
+                <div class="card h-100 border-success">
+                    <div class="card-header bg-success text-white">
+                        <i class="bi bi-cash-stack"></i> Layer 2: Find Funders
+                    </div>
+                    <div class="card-body">
+                        <p class="card-text text-muted small">Discover which foundations have funded a specific organization by searching 990-PF filings and Schedule I data.</p>
+                        <form action="{{ url_for('funders') }}" method="post">
+                            <div class="mb-3">
+                                <label class="form-label">Organization Name</label>
+                                <input type="text" name="name" class="form-control" placeholder="e.g. Eastside Pathways">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Or EIN</label>
+                                <input type="text" name="ein" class="form-control" placeholder="e.g. 45-3005820">
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-6">
+                                    <label class="form-label">State</label>
+                                    <input type="text" name="state" class="form-control" placeholder="e.g. WA" maxlength="2">
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label">Max Results</label>
+                                    <input type="number" name="limit" class="form-control" value="25" min="1" max="50">
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-success w-100">
+                                <i class="bi bi-cash-stack"></i> Find Funders
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Layer 3: Foundation Grants -->
+            <div class="col-md-6 col-lg-4">
+                <div class="card h-100 border-info">
+                    <div class="card-header bg-info text-white">
+                        <i class="bi bi-list-check"></i> Layer 3: Foundation Grants
+                    </div>
+                    <div class="card-body">
+                        <p class="card-text text-muted small">List all grants from a specific foundation's 990-PF Schedule I filings. Filter by sector, state, or minimum amount.</p>
+                        <form action="{{ url_for('grants') }}" method="post">
+                            <div class="mb-3">
+                                <label class="form-label">Foundation Name</label>
+                                <input type="text" name="name" class="form-control" placeholder="e.g. Ballmer Group">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Or EIN</label>
+                                <input type="text" name="ein" class="form-control" placeholder="e.g. 56-2206524">
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-4">
+                                    <label class="form-label">Sector</label>
+                                    <input type="text" name="sector" class="form-control" placeholder="e.g. education">
+                                </div>
+                                <div class="col-4">
+                                    <label class="form-label">State</label>
+                                    <input type="text" name="state" class="form-control" placeholder="WA" maxlength="2">
+                                </div>
+                                <div class="col-4">
+                                    <label class="form-label">Years</label>
+                                    <input type="number" name="years" class="form-control" value="3" min="1" max="5">
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Min Amount ($)</label>
+                                <input type="number" name="min_amount" class="form-control" placeholder="e.g. 50000">
+                            </div>
+                            <button type="submit" class="btn btn-info w-100 text-white">
+                                <i class="bi bi-list-check"></i> List Grants
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

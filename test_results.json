@@ -1,0 +1,118 @@
+{
+  "timestamp": "2026-03-11T11:23:41",
+  "pass": 13,
+  "fail": 6,
+  "skip": 3,
+  "tests": [
+    {
+      "status": "PASS",
+      "test": "Script exists",
+      "detail": "C:\\Users\\mbrid\\.claude\\projects\\Nonprofit_Prospector\\cli.py"
+    },
+    {
+      "status": "PASS",
+      "test": "Help flag works",
+      "detail": ""
+    },
+    {
+      "status": "FAIL",
+      "test": "Org lookup by EIN",
+      "detail": "Code 2, output: "
+    },
+    {
+      "status": "FAIL",
+      "test": "Profile search completes",
+      "detail": "Code 2"
+    },
+    {
+      "status": "PASS",
+      "test": "Funders command runs",
+      "detail": ""
+    },
+    {
+      "status": "FAIL",
+      "test": "Found Ballmer Group as funder",
+      "detail": "Ballmer not in output"
+    },
+    {
+      "status": "PASS",
+      "test": "Funders output contains foundation/grant references",
+      "detail": ""
+    },
+    {
+      "status": "PASS",
+      "test": "Grants command runs",
+      "detail": ""
+    },
+    {
+      "status": "FAIL",
+      "test": "Grants output contains education-related grantees",
+      "detail": ""
+    },
+    {
+      "status": "PASS",
+      "test": "Grants output includes dollar amounts",
+      "detail": ""
+    },
+    {
+      "status": "PASS",
+      "test": "Officers command runs",
+      "detail": ""
+    },
+    {
+      "status": "PASS",
+      "test": "Officers output contains titles (director, president, etc.)",
+      "detail": ""
+    },
+    {
+      "status": "SKIP",
+      "test": "CSV key_people column",
+      "detail": "Profile run with --officers didn't produce CSV"
+    },
+    {
+      "status": "SKIP",
+      "test": "Cross-reference command exists",
+      "detail": "Not yet implemented"
+    },
+    {
+      "status": "PASS",
+      "test": "Pipeline command runs",
+      "detail": ""
+    },
+    {
+      "status": "FAIL",
+      "test": "Pipeline output includes peer orgs",
+      "detail": ""
+    },
+    {
+      "status": "PASS",
+      "test": "Pipeline output includes funders",
+      "detail": ""
+    },
+    {
+      "status": "PASS",
+      "test": "Pipeline output includes evidence chain",
+      "detail": ""
+    },
+    {
+      "status": "PASS",
+      "test": "Anthropic API key available",
+      "detail": ""
+    },
+    {
+      "status": "PASS",
+      "test": "AI scoring runs",
+      "detail": ""
+    },
+    {
+      "status": "FAIL",
+      "test": "Output includes alignment scores",
+      "detail": ""
+    },
+    {
+      "status": "SKIP",
+      "test": "Data integrity checks",
+      "detail": "Could not generate CSV"
+    }
+  ]
+}

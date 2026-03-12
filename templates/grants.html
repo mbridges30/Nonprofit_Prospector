@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block title %}Grants by {{ funder_name }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h2>Foundation Grant List</h2>
+        <p class="text-muted mb-0">
+            Foundation: <strong>{{ funder_name }}</strong> (EIN: {{ funder_ein }})
+            {% if sector %} | Sector: <strong>{{ sector }}</strong>{% endif %}
+            {% if state_filter %} | State: <strong>{{ state_filter }}</strong>{% endif %}
+        </p>
+        <p class="text-muted mb-0">
+            {{ grants|length }} grants totaling <strong>{{ total_amount|dollar }}</strong>
+        </p>
+    </div>
+    <div>
+        <a href="{{ url_for('download_grants_inline', ein=funder_ein, name=funder_name, sector=sector or '', state=state_filter or '') }}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-download"></i> CSV
+        </a>
+        <a href="{{ url_for('home') }}" class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-arrow-left"></i> New Search
+        </a>
+    </div>
+</div>
+
+{% if grants %}
+<div class="table-responsive">
+    <table class="table table-hover table-sm align-middle">
+        <thead class="table-dark">
+            <tr>
+                <th>#</th>
+                <th>Recipient</th>
+                <th class="text-end">Amount</th>
+                <th>State</th>
+                <th>Year</th>
+                <th>Purpose</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for g in grants %}
+            <tr>
+                <td>{{ loop.index }}</td>
+                <td>{{ g.recipient_name }}</td>
+                <td class="text-end">{{ g.amount|short }}</td>
+                <td>{{ g.recipient_state or '' }}</td>
+                <td>{{ g.tax_year or '' }}</td>
+                <td><small class="text-muted">{{ (g.purpose or '')[:80] }}</small></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+        <tfoot class="table-secondary">
+            <tr>
+                <td colspan="2"><strong>Total: {{ grants|length }} grants</strong></td>
+                <td class="text-end"><strong>{{ total_amount|dollar }}</strong></td>
+                <td colspan="3"></td>
+            </tr>
+        </tfoot>
+    </table>
+</div>
+{% else %}
+<div class="alert alert-info">
+    No grants found. The foundation may not file Schedule I, or grants may not match your filters.
+</div>
+{% endif %}
+{% endblock %}

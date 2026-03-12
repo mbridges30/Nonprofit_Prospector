@@ -1,0 +1,209 @@
+/* 990 Prospect Explorer - Custom Styles */
+
+/* Score badges */
+.score-badge {
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.3em 0.6em;
+}
+
+.score-high-priority { background-color: #198754; color: white; }
+.score-strong { background-color: #0d6efd; color: white; }
+.score-moderate { background-color: #ffc107; color: #212529; }
+.score-small { background-color: #6c757d; color: white; }
+.score-low { background-color: #6c757d; color: white; }
+.score-top-prospect { background-color: #dc3545; color: white; }
+
+/* Revenue trend bars */
+.revenue-bar-container {
+    height: 18px;
+    background-color: #e9ecef;
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.revenue-bar {
+    height: 100%;
+    background-color: #0d6efd;
+    border-radius: 3px;
+    min-width: 4px;
+    transition: width 0.3s ease;
+}
+
+/* Card spacing */
+.card {
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.card-header {
+    font-weight: 600;
+}
+
+/* Table tweaks */
+.table th {
+    white-space: nowrap;
+}
+
+.table td {
+    vertical-align: middle;
+}
+
+/* Loading spinner */
+.spinner-border {
+    animation-duration: 1s;
+}
+
+/* Workflow steps */
+.workflow-step {
+    padding: 1rem 0.5rem;
+}
+
+.workflow-number {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: #ffc107;
+    color: #212529;
+    font-size: 1.2rem;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 0.5rem;
+}
+
+/* Summary stat cards */
+.stat-card {
+    border: none;
+    background: #f8f9fa;
+}
+
+.stat-card .card-body {
+    padding: 0.75rem;
+}
+
+/* Tab help text */
+.tab-help {
+    color: #6c757d;
+    font-style: italic;
+    font-size: 0.875rem;
+    margin-bottom: 1rem;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #dee2e6;
+}
+
+/* Footer push to bottom */
+body {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+main {
+    flex: 1;
+}
+
+/* ===== Report styles ===== */
+.report-section {
+    background: #f8f9fa;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    border: 1px solid #e9ecef;
+}
+
+.report-section-title {
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.4rem;
+    border-bottom: 2px solid currentColor;
+}
+
+.funder-report-card .card-header {
+    background: #f8f9fa;
+}
+
+/* ===== Profile builder step indicator ===== */
+.step-indicator {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background-color: #dee2e6;
+    color: #6c757d;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.85rem;
+    transition: all 0.2s;
+}
+
+.step-indicator.active {
+    background-color: #0d6efd;
+    color: white;
+}
+
+.step-indicator.completed {
+    background-color: #198754;
+    color: white;
+}
+
+/* ===== Print styles ===== */
+@media print {
+    /* Hide non-printable elements */
+    .navbar,
+    footer,
+    .d-print-none,
+    .btn,
+    .alert-dismissible .btn-close {
+        display: none !important;
+    }
+
+    /* White backgrounds, no shadows */
+    body {
+        background: white !important;
+        font-size: 11pt;
+    }
+
+    .card {
+        box-shadow: none !important;
+        border: 1px solid #ccc !important;
+    }
+
+    .report-section {
+        background: white !important;
+        border: 1px solid #ddd !important;
+    }
+
+    .stat-card {
+        background: white !important;
+        border: 1px solid #ddd !important;
+    }
+
+    /* Keep funder cards together */
+    .funder-report-card {
+        page-break-inside: avoid;
+        break-inside: avoid;
+    }
+
+    /* Report header on first page */
+    .report-header {
+        page-break-after: avoid;
+    }
+
+    /* Links show URL */
+    a[href]::after {
+        content: none; /* Don't clutter with URLs in print */
+    }
+
+    /* Compact margins */
+    main.container {
+        max-width: 100% !important;
+        padding: 0 !important;
+    }
+
+    .mb-4 {
+        margin-bottom: 1rem !important;
+    }
+}

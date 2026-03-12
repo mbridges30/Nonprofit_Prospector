@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+
+{% block title %}Search Results - {{ query }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h2>Search Results</h2>
+        <p class="text-muted mb-0">
+            Query: <strong>{{ query }}</strong>
+            {% if state %} | State: <strong>{{ state }}</strong>{% endif %}
+            | {{ orgs|length }} organizations found
+        </p>
+    </div>
+    <div>
+        {% if task_id %}
+        <a href="{{ url_for('download', result_type='orgs', task_id=task_id) }}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-download"></i> CSV
+        </a>
+        {% endif %}
+        <a href="{{ url_for('home') }}" class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-arrow-left"></i> New Search
+        </a>
+    </div>
+</div>
+
+{% if orgs %}
+<div class="table-responsive">
+    <table class="table table-hover table-sm align-middle">
+        <thead class="table-dark">
+            <tr>
+                <th>#</th>
+                <th>Priority</th>
+                <th>Organization</th>
+                <th class="text-end">Revenue</th>
+                <th class="text-end">Contributions</th>
+                <th class="text-end">Assets</th>
+                <th>State</th>
+                <th>FY</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for org in orgs %}
+            <tr>
+                <td>{{ loop.index }}</td>
+                <td><span class="badge score-badge score-{{ org.score_label|lower|replace(' ', '-') }}">{{ org.score_label }}</span></td>
+                <td>
+                    <a href="{{ url_for('org_detail', ein=org.ein) }}" class="text-decoration-none fw-semibold">
+                        {{ org.name }}
+                    </a>
+                    {% if org.ntee_code %}
+                    <small class="text-muted d-block">NTEE: {{ org.ntee_code }}</small>
+                    {% endif %}
+                </td>
+                <td class="text-end">{{ org.latest_filing.revenue|short if org.latest_filing else '--' }}</td>
+                <td class="text-end">{{ org.latest_filing.contributions|short if org.latest_filing else '--' }}</td>
+                <td class="text-end">{{ org.latest_filing.assets|short if org.latest_filing else '--' }}</td>
+                <td>{{ org.state }}</td>
+                <td>{{ org.latest_filing.tax_year if org.latest_filing else '--' }}</td>
+                <td>
+                    <a href="{{ url_for('org_detail', ein=org.ein) }}" class="btn btn-sm btn-outline-primary" title="View Details">
+                        <i class="bi bi-eye"></i>
+                    </a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="alert alert-info">
+    No organizations found matching your search criteria.
+</div>
+{% endif %}
+{% endblock %}

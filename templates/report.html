@@ -1,0 +1,333 @@
+{% extends "base.html" %}
+
+{% block title %}Foundation Report - {{ profile.name }}{% endblock %}
+
+{% block content %}
+<!-- ===== Report Header ===== -->
+<div class="d-flex justify-content-between align-items-start mb-3 report-header">
+    <div>
+        <h2 class="mb-1"><i class="bi bi-file-earmark-bar-graph"></i> Foundation Prospect Report</h2>
+        <p class="mb-0">
+            <strong>{{ profile.name }}</strong>
+            {% if profile.city %} | {{ profile.city }}, {{ profile.state }}{% endif %}
+            {% if profile.ein %} | EIN: {{ profile.ein }}{% endif %}
+        </p>
+        {% if profile.mission %}
+        <p class="text-muted small mb-0 mt-1" style="max-width: 700px;">{{ profile.mission }}</p>
+        {% endif %}
+    </div>
+    <div class="d-print-none">
+        <button onclick="window.print()" class="btn btn-outline-secondary btn-sm me-1">
+            <i class="bi bi-printer"></i> Print
+        </button>
+        {% if task_id %}
+        <a href="{{ url_for('download', result_type='funders', task_id=task_id) }}" class="btn btn-outline-secondary btn-sm me-1">
+            <i class="bi bi-download"></i> CSV
+        </a>
+        <a href="{{ url_for('results', task_id=task_id) }}" class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-table"></i> Full Results
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+<!-- ===== Summary Stats ===== -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+        <div class="card text-center stat-card">
+            <div class="card-body py-3">
+                <div class="fs-2 fw-bold text-success">{{ funders|length }}</div>
+                <small class="text-muted">Foundation Prospects</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card text-center stat-card">
+            <div class="card-body py-3">
+                <div class="fs-2 fw-bold text-primary">{{ orgs|length }}</div>
+                <small class="text-muted">Similar Orgs Analyzed</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card text-center stat-card">
+            <div class="card-body py-3">
+                <div class="fs-2 fw-bold text-info">{{ shared_board_members|length }}</div>
+                <small class="text-muted">Shared Board Members</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card text-center stat-card">
+            <div class="card-body py-3">
+                <div class="fs-2 fw-bold text-warning">{{ total_giving_similar|short }}</div>
+                <small class="text-muted">Total Giving to Similar</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if not funders %}
+<div class="alert alert-warning">
+    <i class="bi bi-exclamation-triangle"></i> No funder prospects were identified. Try increasing the number of comparable organizations or running at a higher depth.
+</div>
+{% endif %}
+
+<!-- ===== Per-Funder Cards ===== -->
+{% for funder in funders %}
+<div class="card mb-4 funder-report-card">
+    <!-- Card Header -->
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <div>
+            <span class="badge score-badge score-{{ funder.score_label|lower|replace(' ', '-') }} me-2">{{ funder.score_label }}</span>
+            <span class="fw-bold fs-5">{{ loop.index }}. {{ funder.name }}</span>
+            <span class="text-muted ms-2">{{ funder.city }}, {{ funder.state }}</span>
+        </div>
+        <div class="d-print-none">
+            {% if funder.propublica_url %}
+            <a href="{{ funder.propublica_url }}" target="_blank" class="btn btn-sm btn-outline-secondary" title="ProPublica">
+                <i class="bi bi-box-arrow-up-right"></i>
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="card-body">
+        {% if funder.mission_rationale %}
+        <div class="alert alert-info py-2 small mb-3">
+            <i class="bi bi-stars"></i>
+            <strong>AI Alignment: {{ funder.mission_score }}/100</strong> &mdash; {{ funder.mission_rationale }}
+        </div>
+        {% endif %}
+
+        <div class="row g-3">
+            <!-- ===== A: Evidence Trail (top-left) ===== -->
+            <div class="col-md-6">
+                <div class="report-section h-100">
+                    <h6 class="report-section-title text-success">
+                        <i class="bi bi-diagram-3"></i> Evidence Trail
+                    </h6>
+                    {% if funder.grants_to_target %}
+                    <table class="table table-sm table-borderless mb-0 small">
+                        <thead>
+                            <tr class="text-muted">
+                                <th>Recipient</th>
+                                <th class="text-end">Amount</th>
+                                <th>Year</th>
+                                <th>Source</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for g in funder.grants_to_target[:8] %}
+                            <tr>
+                                <td>{{ g.recipient_name }}</td>
+                                <td class="text-end">{{ g.amount|display_amount }}</td>
+                                <td>{{ g.tax_year or '--' }}</td>
+                                <td>
+                                    {% set method = g|discovery_method %}
+                                    <span class="badge {% if method == 'Donor page' %}bg-info text-dark{% elif method == 'Foundation website' %}bg-primary{% elif method == '990 Schedule I' %}bg-secondary{% else %}bg-light text-dark{% endif %}">{{ method }}</span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    {% if funder.grants_to_target|length > 8 %}
+                    <p class="text-muted small mb-0">... and {{ funder.grants_to_target|length - 8 }} more grants to similar organizations</p>
+                    {% endif %}
+                    {% else %}
+                    <p class="text-muted small mb-0">No direct grant evidence available.</p>
+                    {% endif %}
+
+                    {% set comp_names = funder_to_comps.get(funder.ein, []) %}
+                    {% if comp_names %}
+                    <div class="mt-2 pt-2 border-top">
+                        <small class="text-muted"><strong>Connected to {{ comp_names|length }} similar org{{ 's' if comp_names|length != 1 }}:</strong>
+                        {{ comp_names|join(', ') }}</small>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- ===== B: Foundation Profile (top-right) ===== -->
+            <div class="col-md-6">
+                <div class="report-section h-100">
+                    <h6 class="report-section-title text-primary">
+                        <i class="bi bi-building"></i> Foundation Profile
+                    </h6>
+                    <table class="table table-sm table-borderless mb-0 small">
+                        <tbody>
+                            <tr>
+                                <td class="text-muted" style="width: 140px;">EIN</td>
+                                <td>{{ funder.ein }}</td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted">Location</td>
+                                <td>{{ funder.city }}, {{ funder.state }}</td>
+                            </tr>
+                            {% if funder.latest_filing %}
+                            <tr>
+                                <td class="text-muted">Total Assets</td>
+                                <td>{{ funder.latest_filing.assets|dollar if funder.latest_filing.assets else '--' }}</td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted">Annual Giving</td>
+                                <td>{{ funder.latest_filing.grants_paid|dollar if funder.latest_filing.grants_paid else '--' }}</td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted">Total Revenue</td>
+                                <td>{{ funder.latest_filing.revenue|dollar if funder.latest_filing.revenue else '--' }}</td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted">Filing Year</td>
+                                <td>{{ funder.latest_filing.tax_year or '--' }}</td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td class="text-muted">Financials</td>
+                                <td class="text-muted fst-italic">Not available</td>
+                            </tr>
+                            {% endif %}
+                            {% if funder.all_grants %}
+                            <tr>
+                                <td class="text-muted">Portfolio Size</td>
+                                <td>{{ funder.all_grants|length }} grantees on file</td>
+                            </tr>
+                            {% endif %}
+                            {% if funder.total_giving %}
+                            <tr>
+                                <td class="text-muted">Total Giving</td>
+                                <td>{{ funder.total_giving|dollar }}</td>
+                            </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                    <div class="mt-2">
+                        {% if funder.website %}
+                        <a href="{{ funder.website }}" target="_blank" class="btn btn-sm btn-outline-primary me-1 d-print-none">
+                            <i class="bi bi-globe2"></i> Website
+                        </a>
+                        <span class="d-none d-print-inline small text-muted">{{ funder.website }}</span>
+                        {% endif %}
+                        {% if funder.propublica_url %}
+                        <a href="{{ funder.propublica_url }}" target="_blank" class="btn btn-sm btn-outline-secondary d-print-none">
+                            <i class="bi bi-box-arrow-up-right"></i> ProPublica
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== C: Programs & Funds (bottom-left) ===== -->
+            <div class="col-md-6">
+                <div class="report-section h-100">
+                    <h6 class="report-section-title text-warning">
+                        <i class="bi bi-folder2-open"></i> Programs &amp; Funds
+                    </h6>
+                    {% set programs = group_grants_by_purpose(funder.all_grants) %}
+                    {% if programs and programs|length > 0 and not (programs|length == 1 and programs[0].purpose == 'Unspecified') %}
+                    <table class="table table-sm table-borderless mb-0 small">
+                        <thead>
+                            <tr class="text-muted">
+                                <th>Program/Purpose</th>
+                                <th class="text-end">Total</th>
+                                <th class="text-center">Grants</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for prog in programs[:6] %}
+                            {% if prog.purpose != 'Unspecified' %}
+                            <tr>
+                                <td>{{ prog.purpose }}</td>
+                                <td class="text-end">{{ prog.total|short if prog.total else '--' }}</td>
+                                <td class="text-center">{{ prog.count }}</td>
+                            </tr>
+                            {% endif %}
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    {% set unspecified = programs|selectattr('purpose', 'equalto', 'Unspecified')|list %}
+                    {% if unspecified %}
+                    <p class="text-muted small mb-0 mt-1">+ {{ unspecified[0].count }} grants with unspecified purpose</p>
+                    {% endif %}
+                    {% else %}
+                    <p class="text-muted small mb-0 fst-italic">No program data available. Grant purposes not specified in filings.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- ===== D: Contact Signals (bottom-right) ===== -->
+            <div class="col-md-6">
+                <div class="report-section h-100">
+                    <h6 class="report-section-title text-danger">
+                        <i class="bi bi-person-lines-fill"></i> Contact Signals
+                    </h6>
+
+                    {% if funder.officers %}
+                    <h6 class="small fw-semibold mt-2 mb-1">Foundation Officers</h6>
+                    <table class="table table-sm table-borderless mb-0 small">
+                        <tbody>
+                            {% for officer in funder.officers[:6] %}
+                            <tr>
+                                <td><strong>{{ officer.name }}</strong></td>
+                                <td class="text-muted">{{ officer.title }}</td>
+                                <td class="text-end">
+                                    {% if officer.compensation %}${{ '{:,.0f}'.format(officer.compensation) }}{% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    {% if funder.officers|length > 6 %}
+                    <p class="text-muted small mb-0">... and {{ funder.officers|length - 6 }} more officers</p>
+                    {% endif %}
+                    {% else %}
+                    <p class="text-muted small mb-2 fst-italic">Officer data not available.</p>
+                    {% endif %}
+
+                    {# Shared board members for this funder #}
+                    {% set funder_shared = [] %}
+                    {% for name, entries in shared_board_members.items() %}
+                        {% for e in entries %}
+                            {% if e.org_ein == funder.ein %}
+                                {% if funder_shared.append({'name': e.original_name, 'title': e.title, 'orgs': entries}) %}{% endif %}
+                            {% endif %}
+                        {% endfor %}
+                    {% endfor %}
+
+                    {% if funder_shared %}
+                    <h6 class="small fw-semibold mt-3 mb-1">
+                        <i class="bi bi-people text-info"></i> Shared Board Members
+                    </h6>
+                    <ul class="list-unstyled small mb-0">
+                        {% for person in funder_shared %}
+                        <li class="mb-1">
+                            <strong>{{ person.name }}</strong> <span class="text-muted">({{ person.title }})</span>
+                            <br>
+                            <small class="text-muted">Also serves at:
+                            {% for e in person.orgs %}
+                                {% if e.org_ein != funder.ein %}{{ e.org_name }}{% if not loop.last %}, {% endif %}{% endif %}
+                            {% endfor %}
+                            </small>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+<!-- ===== Report Footer ===== -->
+<div class="text-center text-muted small mt-4 mb-3 report-footer">
+    <p class="mb-1">
+        Generated by 990 Prospect Explorer | Data from ProPublica Nonprofit Explorer &amp; IRS 990 E-Filings
+    </p>
+    <p class="mb-0">
+        Report for <strong>{{ profile.name }}</strong> |
+        {{ funders|length }} foundation prospects from {{ orgs|length }} comparable organizations |
+        {{ "now"|default("") }}
+    </p>
+</div>
+{% endblock %}

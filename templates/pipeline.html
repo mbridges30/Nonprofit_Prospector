@@ -1,0 +1,419 @@
+{% extends "base.html" %}
+
+{% block title %}Pipeline Results - {{ profile.name }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h2>Pipeline Results</h2>
+        <p class="text-muted mb-0">
+            Profile: <strong>{{ profile.name }}</strong> ({{ profile.city }}, {{ profile.state }})
+            | Depth: {{ depth }}
+        </p>
+    </div>
+    <div>
+        {% if task_id %}
+        {% if funders %}
+        <a href="{{ url_for('report', task_id=task_id) }}" class="btn btn-success btn-sm me-1">
+            <i class="bi bi-file-earmark-bar-graph"></i> View Report
+        </a>
+        {% endif %}
+        <div class="btn-group btn-group-sm">
+            <a href="{{ url_for('download', result_type='orgs', task_id=task_id) }}" class="btn btn-outline-secondary">
+                <i class="bi bi-download"></i> Orgs CSV
+            </a>
+            {% if funders %}
+            <a href="{{ url_for('download', result_type='funders', task_id=task_id) }}" class="btn btn-outline-secondary">
+                <i class="bi bi-download"></i> Funders CSV
+            </a>
+            {% endif %}
+        </div>
+        {% endif %}
+        <a href="{{ url_for('home') }}" class="btn btn-outline-primary btn-sm ms-1">
+            <i class="bi bi-arrow-left"></i> Home
+        </a>
+    </div>
+</div>
+
+<!-- ===== Summary Dashboard ===== -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+        <div class="card text-center stat-card">
+            <div class="card-body py-3">
+                <div class="fs-2 fw-bold text-primary">{{ orgs|length }}</div>
+                <small class="text-muted">Similar Orgs Found</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card text-center stat-card">
+            <div class="card-body py-3">
+                <div class="fs-2 fw-bold text-success">{{ funders|length }}</div>
+                <small class="text-muted">Funder Prospects</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card text-center stat-card">
+            <div class="card-body py-3">
+                <div class="fs-2 fw-bold text-info">{{ shared_board_members|length }}</div>
+                <small class="text-muted">Shared Board Members</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card text-center stat-card">
+            <div class="card-body py-3">
+                <div class="fs-2 fw-bold text-warning">{{ total_giving_similar|short }}</div>
+                <small class="text-muted">Total Giving to Similar</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if funders %}
+<div class="alert alert-success py-2 small">
+    <i class="bi bi-check-circle"></i>
+    We found <strong>{{ funders|length }} funders</strong> that support
+    <strong>{{ orgs|length }} organizations</strong> similar to <strong>{{ profile.name }}</strong>,
+    with <strong>{{ total_giving_similar|dollar }}</strong> in total giving to mission-adjacent nonprofits.
+</div>
+{% elif depth >= 2 %}
+<div class="alert alert-warning py-2 small">
+    <i class="bi bi-exclamation-triangle"></i>
+    No funders were identified at depth {{ depth }}. Try increasing the number of comp orgs or running at a higher depth.
+    {% if diagnostics %}
+    <a class="ms-2" data-bs-toggle="collapse" href="#pipelineDiag"><strong>View diagnostics</strong></a> to see what was tried.
+    {% endif %}
+</div>
+{% endif %}
+
+<!-- ===== Tabs ===== -->
+<ul class="nav nav-tabs" role="tablist">
+    {% if funders %}
+    <li class="nav-item">
+        <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-funders" type="button">
+            <i class="bi bi-cash-stack"></i> Funder Prospects ({{ funders|length }})
+        </button>
+    </li>
+    <li class="nav-item">
+        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-evidence" type="button">
+            <i class="bi bi-diagram-3"></i> Evidence Chains
+        </button>
+    </li>
+    {% endif %}
+    {% if shared_board_members %}
+    <li class="nav-item">
+        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-board" type="button">
+            <i class="bi bi-people"></i> Shared Board Members ({{ shared_board_members|length }})
+        </button>
+    </li>
+    {% endif %}
+    <li class="nav-item">
+        <button class="nav-link {% if not funders %}active{% endif %}" data-bs-toggle="tab" data-bs-target="#tab-comps" type="button">
+            <i class="bi bi-building"></i> Comparable Orgs ({{ orgs|length }})
+        </button>
+    </li>
+</ul>
+
+<div class="tab-content pt-3">
+
+    {% if funders %}
+    <!-- ===== Funders Tab (PRIMARY) ===== -->
+    <div class="tab-pane fade show active" id="tab-funders">
+        <p class="tab-help">These foundations have funded organizations similar to yours. Higher-scored funders have stronger giving patterns and mission alignment. Click a row to see details.</p>
+
+        <div class="table-responsive">
+            <table class="table table-hover table-sm align-middle">
+                <thead class="table-dark">
+                    <tr>
+                        <th>#</th>
+                        <th>Priority</th>
+                        <th>Foundation</th>
+                        <th class="text-center">Similar Orgs Funded</th>
+                        <th class="text-end">Grants to Similar</th>
+                        <th class="text-end">Total Giving</th>
+                        <th>State</th>
+                        {% if funders[0].mission_score %}
+                        <th class="text-center">AI Score</th>
+                        {% endif %}
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for funder in funders %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td><span class="badge score-badge score-{{ funder.score_label|lower|replace(' ', '-') }}">{{ funder.score_label }}</span></td>
+                        <td>
+                            <a href="{{ url_for('funder_detail', ein=funder.ein) }}" class="text-decoration-none fw-semibold">{{ funder.name }}</a>
+                            <small class="text-muted d-block">{{ funder.city }}, {{ funder.state }}</small>
+                            {% if funder.mission_rationale %}
+                            <small class="text-info d-block"><i class="bi bi-stars"></i> {{ funder.mission_rationale }}</small>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            {% set comp_names = funder_to_comps.get(funder.ein, []) %}
+                            {% if comp_names %}
+                            <span class="badge bg-primary">{{ comp_names|length }}</span>
+                            {% else %}
+                            <span class="text-muted">--</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            {{ sum_amounts(funder.grants_to_target)|short }}
+                        </td>
+                        <td class="text-end">
+                            {{ (funder.total_giving or sum_amounts(funder.all_grants))|short }}
+                        </td>
+                        <td>{{ funder.state }}</td>
+                        {% if funders[0].mission_score %}
+                        <td class="text-center">
+                            {% if funder.mission_score %}
+                            <span class="badge {% if funder.mission_score >= 70 %}bg-success{% elif funder.mission_score >= 50 %}bg-warning text-dark{% else %}bg-secondary{% endif %}">
+                                {{ funder.mission_score }}/100
+                            </span>
+                            {% else %}
+                            <span class="text-muted">--</span>
+                            {% endif %}
+                        </td>
+                        {% endif %}
+                        <td>
+                            <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#funder-detail-{{ loop.index }}" title="Show details">
+                                <i class="bi bi-chevron-down"></i>
+                            </button>
+                            {% if funder.score >= 4 %}
+                            <form action="{{ url_for('draft') }}" method="post" class="d-inline">
+                                <input type="hidden" name="ein" value="{{ funder.ein }}">
+                                <input type="hidden" name="profile" value="{{ profile_key }}">
+                                <button type="submit" class="btn btn-sm btn-outline-danger" title="Draft grant letter">
+                                    <i class="bi bi-pencil-square"></i>
+                                </button>
+                            </form>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <!-- Expandable detail row -->
+                    <tr class="collapse" id="funder-detail-{{ loop.index }}">
+                        <td colspan="9" class="bg-light px-4 py-3">
+                            <div class="row">
+                                <!-- Which comp orgs they fund -->
+                                <div class="col-md-6">
+                                    {% if funder.grants_to_target %}
+                                    <h6 class="text-success"><i class="bi bi-arrow-right-circle"></i> Grants to Similar Organizations</h6>
+                                    <ul class="list-unstyled mb-2 small">
+                                        {% for g in funder.grants_to_target %}
+                                        <li class="mb-1">
+                                            <strong>{{ g.recipient_name }}</strong>: {{ g.amount|dollar }}
+                                            {% if g.purpose %}<span class="text-muted"> - {{ g.purpose[:60] }}</span>{% endif %}
+                                            <span class="text-muted">({{ g.tax_year }})</span>
+                                        </li>
+                                        {% endfor %}
+                                    </ul>
+                                    {% endif %}
+
+                                    {% set comp_names = funder_to_comps.get(funder.ein, []) %}
+                                    {% if comp_names %}
+                                    <h6 class="text-primary"><i class="bi bi-building"></i> Connected Comp Orgs</h6>
+                                    <p class="small">{{ comp_names|join(', ') }}</p>
+                                    {% endif %}
+                                </div>
+                                <!-- Top overall grants -->
+                                <div class="col-md-6">
+                                    {% if funder.all_grants %}
+                                    <h6 class="text-muted"><i class="bi bi-list-check"></i> Top Grants Overall ({{ funder.all_grants|length }} total)</h6>
+                                    <ul class="list-unstyled mb-0 small">
+                                        {% for g in funder.all_grants|sort(attribute='amount', reverse=True) %}
+                                        {% if loop.index <= 7 %}
+                                        <li>{{ g.recipient_name }}{% if g.recipient_state %} ({{ g.recipient_state }}){% endif %}: {{ g.amount|dollar }}</li>
+                                        {% endif %}
+                                        {% endfor %}
+                                        {% if funder.all_grants|length > 7 %}
+                                        <li class="text-muted">... and {{ funder.all_grants|length - 7 }} more
+                                            <a href="{{ url_for('funder_detail', ein=funder.ein) }}" class="ms-1">View all</a>
+                                        </li>
+                                        {% endif %}
+                                    </ul>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ===== Evidence Chains Tab ===== -->
+    <div class="tab-pane fade" id="tab-evidence">
+        <p class="tab-help">Why should <strong>{{ profile.name }}</strong> approach these funders? Each card shows the evidence chain linking a funder to your mission.</p>
+
+        {% for funder in funders[:20] %}
+        <div class="card mb-3">
+            <div class="card-body py-3 px-3">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <div>
+                        <span class="badge score-badge score-{{ funder.score_label|lower|replace(' ', '-') }} me-2">{{ funder.score_label }}</span>
+                        <a href="{{ url_for('funder_detail', ein=funder.ein) }}" class="fw-bold text-decoration-none fs-5">{{ funder.name }}</a>
+                        <span class="text-muted ms-2">{{ funder.city }}, {{ funder.state }}</span>
+                    </div>
+                    {% if funder.score >= 4 %}
+                    <form action="{{ url_for('draft') }}" method="post" class="d-inline">
+                        <input type="hidden" name="ein" value="{{ funder.ein }}">
+                        <input type="hidden" name="profile" value="{{ profile_key }}">
+                        <button type="submit" class="btn btn-sm btn-danger">
+                            <i class="bi bi-pencil-square"></i> Draft Letter
+                        </button>
+                    </form>
+                    {% endif %}
+                </div>
+
+                <!-- Why this funder -->
+                <div class="mb-2 small">
+                    <strong>{{ funder.name }}</strong> has given
+                    <strong>{{ sum_amounts(funder.grants_to_target)|dollar }}</strong> to
+                    {% set unique_recipients = funder.grants_to_target|map(attribute='recipient_name')|list|unique|list %}
+                    <strong>{{ unique_recipients|length }}</strong> organization{{ 's' if unique_recipients|length != 1 }} similar to {{ profile.name }}.
+                    {% if funder.all_grants %}
+                    Their overall giving totals {{ (funder.total_giving or sum_amounts(funder.all_grants))|dollar }} across {{ funder.all_grants|length }} grants.
+                    {% endif %}
+                    {% if funder.mission_score %}
+                    <br><i class="bi bi-stars text-info"></i> <strong>AI Alignment: {{ funder.mission_score }}/100</strong> - {{ funder.mission_rationale }}
+                    {% endif %}
+                </div>
+
+                <!-- Grant evidence -->
+                <ul class="list-unstyled mb-0 ms-3 small">
+                    {% for g in funder.grants_to_target[:5] %}
+                    <li>
+                        <i class="bi bi-arrow-right text-success"></i>
+                        Gave <strong>{{ g.amount|short }}</strong> to {{ g.recipient_name }} ({{ g.tax_year }})
+                        {% if g.purpose %}<span class="text-muted"> - {{ g.purpose[:60] }}</span>{% endif %}
+                    </li>
+                    {% endfor %}
+                    {% if funder.grants_to_target|length > 5 %}
+                    <li class="text-muted">... and {{ funder.grants_to_target|length - 5 }} more grants to similar orgs</li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if shared_board_members %}
+    <!-- ===== Shared Board Members Tab ===== -->
+    <div class="tab-pane fade" id="tab-board">
+        <p class="tab-help">These individuals serve on the boards of multiple organizations in your prospect set. They may be valuable networking contacts or can provide introductions.</p>
+
+        {% for name, entries in shared_board_members|dictsort(by='value', reverse=true) %}
+        <div class="card mb-2">
+            <div class="card-body py-2 px-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong>{{ entries[0].original_name }}</strong>
+                        <span class="badge bg-info ms-2">{{ entries|length }} boards</span>
+                    </div>
+                </div>
+                <ul class="list-unstyled mb-0 mt-1 ms-3 small">
+                    {% for e in entries %}
+                    <li>
+                        <i class="bi bi-building text-primary"></i>
+                        <a href="{{ url_for('org_detail', ein=e.org_ein) }}" class="text-decoration-none">{{ e.org_name }}</a>
+                        <span class="text-muted"> - {{ e.title }}</span>
+                        {% if e.compensation %}
+                        <span class="text-muted"> (${{ '{:,.0f}'.format(e.compensation) }})</span>
+                        {% endif %}
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- ===== Comparable Orgs Tab ===== -->
+    <div class="tab-pane fade {% if not funders %}show active{% endif %}" id="tab-comps">
+        <p class="tab-help">Organizations with similar missions to {{ profile.name }}. These were used to identify the funder prospects above. Click an org to see its full profile.</p>
+
+        {% if orgs %}
+        <div class="table-responsive">
+            <table class="table table-hover table-sm align-middle">
+                <thead class="table-dark">
+                    <tr>
+                        <th>#</th>
+                        <th>Priority</th>
+                        <th>Organization</th>
+                        <th class="text-end">Revenue</th>
+                        <th class="text-end">Contributions</th>
+                        <th>State</th>
+                        <th>FY</th>
+                        <th>Website</th>
+                        <th>Funders Found</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for org in orgs %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td><span class="badge score-badge score-{{ org.score_label|lower|replace(' ', '-') }}">{{ org.score_label }}</span></td>
+                        <td>
+                            <a href="{{ url_for('org_detail', ein=org.ein) }}" class="text-decoration-none fw-semibold">{{ org.name }}</a>
+                        </td>
+                        <td class="text-end">{{ org.latest_filing.revenue|short if org.latest_filing else '--' }}</td>
+                        <td class="text-end">{{ org.latest_filing.contributions|short if org.latest_filing else '--' }}</td>
+                        <td>{{ org.state }}</td>
+                        <td>{{ org.latest_filing.tax_year if org.latest_filing else '--' }}</td>
+                        <td>
+                            {% if org.website %}
+                            <a href="{{ org.website }}" target="_blank" class="text-decoration-none small" title="{{ org.website }}">
+                                <i class="bi bi-globe2"></i>
+                            </a>
+                            {% else %}
+                            <span class="text-muted">--</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if org.funders %}
+                            <span class="badge bg-success">{{ org.funders|length }}</span>
+                            {% else %}
+                            <span class="text-muted">0</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+    </div>
+
+</div>
+
+<!-- ===== Pipeline Diagnostics ===== -->
+{% if diagnostics %}
+<div class="mt-4">
+    <p class="text-center">
+        <a class="btn btn-sm btn-outline-secondary" data-bs-toggle="collapse" href="#pipelineDiag">
+            <i class="bi bi-bug"></i> Pipeline Diagnostics ({{ diagnostics|length }} messages)
+        </a>
+    </p>
+    <div class="collapse {% if not funders and depth >= 2 %}show{% endif %}" id="pipelineDiag">
+        <div class="card {% if not funders and depth >= 2 %}border-warning{% endif %}">
+            <div class="card-header small">
+                <i class="bi bi-bug"></i> Pipeline Execution Log
+                {% if not funders and depth >= 2 %}
+                <span class="badge bg-warning text-dark ms-2">Debug: No funders found</span>
+                {% endif %}
+            </div>
+            <div class="card-body p-2">
+                <pre class="small mb-0" style="max-height: 500px; overflow-y: auto; white-space: pre-wrap;">{% for msg in diagnostics %}{{ msg }}
+{% endfor %}</pre>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+
+{% block title %}{{ org.name }} - Foundation Detail{% endblock %}
+
+{% block content %}
+<a href="javascript:history.back()" class="btn btn-sm btn-outline-secondary mb-3"><i class="bi bi-arrow-left"></i> Back</a>
+
+<!-- Header -->
+<div class="card mb-4">
+    <div class="card-body d-flex justify-content-between align-items-start">
+        <div>
+            <h2 class="mb-1">{{ org.name }}</h2>
+            <p class="text-muted mb-2">{{ org.city }}, {{ org.state }} | EIN: {{ org.ein }}</p>
+            {% if org.propublica_url %}
+            <a href="{{ org.propublica_url }}" target="_blank" class="btn btn-sm btn-outline-info">
+                <i class="bi bi-box-arrow-up-right"></i> View on ProPublica
+            </a>
+            {% endif %}
+        </div>
+        <div class="text-end">
+            <span class="badge bg-dark fs-6 px-3 py-2">{{ org.score_label }} ({{ org.score }})</span>
+            {% if profiles %}
+            <div class="mt-2">
+                <form action="{{ url_for('draft') }}" method="post" class="d-inline">
+                    <input type="hidden" name="ein" value="{{ org.ein }}">
+                    <input type="hidden" name="profile" value="{{ profiles.keys()|list|first }}">
+                    <button type="submit" class="btn btn-sm btn-danger">
+                        <i class="bi bi-pencil-square"></i> Draft Grant Letter
+                    </button>
+                </form>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <!-- Financials -->
+    <div class="col-md-5">
+        <div class="card h-100">
+            <div class="card-header"><i class="bi bi-bank"></i> Foundation Financials{% if org.latest_filing %} (FY {{ org.latest_filing.tax_year }}){% endif %}</div>
+            <div class="card-body">
+                {% if org.latest_filing %}
+                {% set f = org.latest_filing %}
+                <table class="table table-sm mb-0">
+                    <tr><td class="text-muted">Total Assets</td><td class="text-end fw-semibold">{{ f.assets|dollar }}</td></tr>
+                    <tr><td class="text-muted">Revenue</td><td class="text-end">{{ f.revenue|dollar }}</td></tr>
+                    <tr><td class="text-muted">Grants Paid</td><td class="text-end">{{ (f.grants_paid or 0)|dollar }}</td></tr>
+                    <tr><td class="text-muted">Total Expenses</td><td class="text-end">{{ f.expenses|dollar }}</td></tr>
+                    <tr><td class="text-muted">Net Assets</td><td class="text-end">{{ f.net_assets|dollar }}</td></tr>
+                </table>
+                {% else %}
+                <p class="text-muted">No filing data available.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Giving Summary -->
+    <div class="col-md-7">
+        <div class="card h-100">
+            <div class="card-header"><i class="bi bi-cash-stack"></i> Giving Summary</div>
+            <div class="card-body">
+                <div class="row text-center mb-3">
+                    <div class="col-4">
+                        <div class="fs-3 fw-bold text-success">{{ total_giving|short }}</div>
+                        <small class="text-muted">Total Grants</small>
+                    </div>
+                    <div class="col-4">
+                        <div class="fs-3 fw-bold text-primary">{{ grants|length }}</div>
+                        <small class="text-muted">Grants Made</small>
+                    </div>
+                    <div class="col-4">
+                        <div class="fs-3 fw-bold text-info">{{ top_recipients|length }}</div>
+                        <small class="text-muted">Recipients</small>
+                    </div>
+                </div>
+                {% if top_recipients %}
+                <h6 class="text-muted">Top Recipients</h6>
+                <table class="table table-sm table-hover mb-0">
+                    {% for name, amount in top_recipients %}
+                    <tr>
+                        <td>{{ name }}</td>
+                        <td class="text-end fw-semibold">{{ amount|dollar }}</td>
+                    </tr>
+                    {% endfor %}
+                </table>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Full Grant List -->
+{% if grants %}
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-list-check"></i> All Grants ({{ grants|length }})</span>
+        <span class="text-muted">Total: {{ total_giving|dollar }}</span>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover table-sm align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Recipient</th>
+                        <th>State</th>
+                        <th class="text-end">Amount</th>
+                        <th>Purpose</th>
+                        <th>Year</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for g in grants|sort(attribute='amount', reverse=True) %}
+                    <tr>
+                        <td class="fw-semibold">{{ g.recipient_name }}</td>
+                        <td>{{ g.recipient_state or '--' }}</td>
+                        <td class="text-end">{{ g.amount|dollar }}</td>
+                        <td class="small text-muted">{{ (g.purpose or '')[:80] }}{% if g.purpose and g.purpose|length > 80 %}...{% endif %}</td>
+                        <td>{{ g.tax_year or '--' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% else %}
+<div class="alert alert-info">
+    <i class="bi bi-info-circle"></i> No grant data found in Schedule I filings. This may not be a 990-PF filer, or grant data may not be available.
+</div>
+{% endif %}
+
+<!-- Officers -->
+{% if org.officers %}
+<div class="card mb-4">
+    <div class="card-header"><i class="bi bi-people"></i> Key People ({{ org.officers|length }})</div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-sm align-middle mb-0">
+                <thead class="table-light">
+                    <tr><th>Name</th><th>Title</th><th class="text-end">Compensation</th></tr>
+                </thead>
+                <tbody>
+                    {% for o in org.officers %}
+                    <tr>
+                        <td>{{ o.name }}</td>
+                        <td class="text-muted">{{ o.title }}</td>
+                        <td class="text-end">{{ o.compensation|dollar if o.compensation else '--' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

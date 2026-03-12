@@ -1,0 +1,205 @@
+{% extends "base.html" %}
+
+{% block title %}New Prospect Search{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+
+        <h2 class="mb-1"><i class="bi bi-search-heart"></i> New Prospect Search</h2>
+        <p class="text-muted mb-4">Find foundations that fund nonprofits like yours.</p>
+
+        <!-- Step indicators -->
+        <div class="d-flex justify-content-center mb-4">
+            <div class="step-indicator active" id="indicator-1">
+                <span class="step-num">1</span> Find Your Org
+            </div>
+            <div class="step-connector"></div>
+            <div class="step-indicator" id="indicator-2">
+                <span class="step-num">2</span> Confirm Details
+            </div>
+            <div class="step-connector"></div>
+            <div class="step-indicator" id="indicator-3">
+                <span class="step-num">3</span> Run Pipeline
+            </div>
+        </div>
+
+        <!-- ===== STEP 1: Find Your Org ===== -->
+        <div id="step-1" class="step-panel">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <i class="bi bi-search"></i> Step 1: Find Your Organization
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Search by name</label>
+                        <input type="text" id="org-search-input" class="form-control form-control-lg"
+                               placeholder="Start typing your nonprofit's name..." autocomplete="off">
+                        <div class="form-text">We'll search ProPublica's database of 1.8M nonprofits.</div>
+                    </div>
+
+                    <!-- Search results -->
+                    <div id="search-results" class="mb-3" style="display:none;">
+                        <label class="form-label text-muted small">Select your organization:</label>
+                        <div id="search-results-list"></div>
+                    </div>
+
+                    <div id="search-loading" class="text-center py-3" style="display:none;">
+                        <div class="spinner-border spinner-border-sm text-primary"></div>
+                        <span class="text-muted ms-2">Searching...</span>
+                    </div>
+
+                    <div id="search-empty" class="text-muted text-center py-2" style="display:none;">
+                        No organizations found. Try a different search or enter your EIN manually below.
+                    </div>
+
+                    <hr>
+                    <div class="mb-3">
+                        <label class="form-label text-muted small">Or enter your EIN directly:</label>
+                        <div class="input-group">
+                            <input type="text" id="manual-ein-input" class="form-control" placeholder="e.g. 33-4593800">
+                            <button type="button" class="btn btn-outline-secondary" id="manual-ein-btn">
+                                <i class="bi bi-arrow-right"></i> Look Up
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== STEP 2: Confirm Details ===== -->
+        <div id="step-2" class="step-panel" style="display:none;">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <i class="bi bi-check-circle"></i> Step 2: Confirm Your Profile
+                </div>
+                <div class="card-body">
+                    <form id="profile-form" action="{{ url_for('profile_run') }}" method="post">
+
+                        <div class="row mb-3">
+                            <div class="col-md-8">
+                                <label class="form-label fw-semibold">Organization Name</label>
+                                <input type="text" name="name" id="field-name" class="form-control" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold">EIN</label>
+                                <input type="text" name="ein" id="field-ein" class="form-control bg-light" readonly>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Mission Statement</label>
+                            <textarea name="mission" id="field-mission" class="form-control" rows="2"
+                                      placeholder="Brief description of your organization's mission"></textarea>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Search Keywords</label>
+                            <div id="keyword-tags" class="d-flex flex-wrap gap-1 mb-2"></div>
+                            <div class="input-group input-group-sm">
+                                <input type="text" id="keyword-input" class="form-control" placeholder="Add a keyword...">
+                                <button type="button" class="btn btn-outline-secondary" id="keyword-add-btn">
+                                    <i class="bi bi-plus"></i> Add
+                                </button>
+                            </div>
+                            <input type="hidden" name="keywords" id="field-keywords">
+                            <div class="form-text">Keywords used to find similar nonprofits. Add or remove as needed.</div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold">City</label>
+                                <input type="text" name="city" id="field-city" class="form-control">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold">State</label>
+                                <input type="text" name="state" id="field-state" class="form-control" maxlength="2"
+                                       placeholder="e.g. WA">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold">NTEE Code</label>
+                                <input type="text" name="ntee_code" id="field-ntee" class="form-control"
+                                       placeholder="e.g. B90">
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Search States</label>
+                            <input type="text" name="search_states" id="field-search-states" class="form-control"
+                                   placeholder="e.g. WA, OR, CA (comma-separated)">
+                            <div class="form-text">Which states to search for similar orgs. Defaults to your state.</div>
+                        </div>
+
+                        <!-- Hidden fields for step 3 (set by JS) -->
+                        <input type="hidden" name="depth" id="field-depth" value="2">
+                        <input type="hidden" name="limit" id="field-limit" value="25">
+                        <input type="hidden" name="officers" value="on">
+
+                        <div class="d-flex justify-content-between">
+                            <button type="button" class="btn btn-outline-secondary" id="back-to-step1">
+                                <i class="bi bi-arrow-left"></i> Back
+                            </button>
+                            <button type="button" class="btn btn-success" id="to-step3">
+                                Continue <i class="bi bi-arrow-right"></i>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== STEP 3: Run Settings ===== -->
+        <div id="step-3" class="step-panel" style="display:none;">
+            <div class="card">
+                <div class="card-header bg-warning text-dark">
+                    <i class="bi bi-play-fill"></i> Step 3: Run the Pipeline
+                </div>
+                <div class="card-body">
+
+                    <div class="alert alert-light border mb-3">
+                        <strong id="confirm-name">--</strong>
+                        <span class="text-muted" id="confirm-location">--</span>
+                        <br>
+                        <small class="text-muted" id="confirm-keywords">--</small>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Pipeline Depth</label>
+                            <select id="setting-depth" class="form-select">
+                                <option value="1">1 - Find similar orgs only</option>
+                                <option value="2" selected>2 - Similar orgs + their funders (recommended)</option>
+                                <option value="3">3 - Full pipeline with grant lists (slow)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Max Comparable Orgs</label>
+                            <input type="number" id="setting-limit" class="form-control" value="25" min="5" max="50">
+                        </div>
+                    </div>
+
+                    <p class="text-muted small">
+                        <i class="bi bi-clock"></i> The pipeline typically takes 3-8 minutes.
+                        It searches ProPublica's database, scrapes donor pages from similar nonprofits' websites,
+                        and cross-references foundation grant pages.
+                    </p>
+
+                    <div class="d-flex justify-content-between">
+                        <button type="button" class="btn btn-outline-secondary" id="back-to-step2">
+                            <i class="bi bi-arrow-left"></i> Back
+                        </button>
+                        <button type="button" class="btn btn-warning btn-lg" id="run-pipeline-btn">
+                            <i class="bi bi-play-fill"></i> Run Pipeline
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/profile-builder.js') }}"></script>
+{% endblock %}

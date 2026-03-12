@@ -1,0 +1,124 @@
+[
+  {
+    "name": "Ballmer Group",
+    "ein": "562206524",
+    "website": "https://www.ballmergroup.org",
+    "grants_url": "https://www.ballmergroup.org/our-grants/",
+    "search_param": "_search",
+    "parser": "ballmer"
+  },
+  {
+    "name": "Bill & Melinda Gates Foundation",
+    "ein": "562618866",
+    "website": "https://www.gatesfoundation.org",
+    "grants_url": "https://www.gatesfoundation.org/about/committed-grants",
+    "search_param": "q",
+    "parser": "gates"
+  },
+  {
+    "name": "Bezos Family Foundation",
+    "ein": "911913237",
+    "website": "https://www.bezosfamilyfoundation.org",
+    "grants_url": "https://www.bezosfamilyfoundation.org/",
+    "parser": "generic"
+  },
+  {
+    "name": "Simons Foundation",
+    "ein": "137029285",
+    "website": "https://www.simonsfoundation.org",
+    "grants_url": "https://annualreports.simonsfoundation.org/2024/grantees/",
+    "parser": "generic"
+  },
+  {
+    "name": "M.J. Murdock Charitable Trust",
+    "ein": "936025354",
+    "website": "https://www.murdocktrust.org",
+    "grants_url": "https://www.murdocktrust.org/grants/",
+    "parser": "generic"
+  },
+  {
+    "name": "Paul G. Allen Family Foundation",
+    "ein": "911599456",
+    "website": "https://pgafamilyfoundation.org",
+    "grants_url": "https://pgafamilyfoundation.org/grants",
+    "parser": "generic"
+  },
+  {
+    "name": "Seattle Foundation",
+    "ein": "916024904",
+    "website": "https://www.seattlefoundation.org",
+    "grants_url": "https://www.seattlefoundation.org/nonprofitpartners/grantees",
+    "parser": "generic"
+  },
+  {
+    "name": "Raikes Foundation",
+    "ein": "263292284",
+    "website": "https://www.raikesfoundation.org",
+    "grants_url": "https://www.raikesfoundation.org/our-grants",
+    "parser": "generic"
+  },
+  {
+    "name": "Norcliffe Foundation",
+    "ein": "916028330",
+    "website": "https://www.thenorclifefoundation.com",
+    "grants_url": "https://www.thenorclifefoundation.com/grants",
+    "parser": "generic"
+  },
+  {
+    "name": "4Culture",
+    "ein": "911604825",
+    "website": "https://www.4culture.org",
+    "grants_url": "https://www.4culture.org/grants/",
+    "parser": "generic"
+  },
+  {
+    "name": "Alfred P. Sloan Foundation",
+    "ein": "131623877",
+    "website": "https://sloan.org",
+    "grants_url": "https://sloan.org/grants",
+    "parser": "generic"
+  },
+  {
+    "name": "National Science Foundation",
+    "ein": "not_applicable",
+    "website": "https://www.nsf.gov",
+    "grants_url": "https://www.nsf.gov/awardsearch/",
+    "parser": "generic",
+    "notes": "Government funder, search by keyword"
+  },
+  {
+    "name": "W.K. Kellogg Foundation",
+    "ein": "381359264",
+    "website": "https://www.wkkf.org",
+    "grants_url": "https://www.wkkf.org/grants",
+    "parser": "generic"
+  },
+  {
+    "name": "Carnegie Corporation of New York",
+    "ein": "131623561",
+    "website": "https://www.carnegie.org",
+    "grants_url": "https://www.carnegie.org/grants/",
+    "parser": "generic"
+  },
+  {
+    "name": "Walmart Foundation",
+    "ein": "710636845",
+    "website": "https://walmart.org",
+    "grants_url": "https://walmart.org/how-we-give/local-community-grants",
+    "parser": "generic"
+  },
+  {
+    "name": "MacArthur Foundation",
+    "ein": "237093598",
+    "website": "https://www.macfound.org",
+    "grants_url": "https://www.macfound.org/grants/",
+    "parser": "generic"
+  },
+  {
+    "name": "Hewlett Foundation",
+    "ein": "941655673",
+    "website": "https://hewlett.org",
+    "grants_url": "https://hewlett.org/grants/",
+    "parser": "generic"
+  }
+]

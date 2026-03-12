@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+
+{% block title %}{{ org.name }} - 990 Prospect Explorer{% endblock %}
+
+{% block content %}
+<div class="mb-3">
+    <a href="javascript:history.back()" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left"></i> Back
+    </a>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <div>
+            <h3 class="mb-0">{{ org.name }}</h3>
+            <small class="text-muted">{{ org.city }}, {{ org.state }} | EIN: {{ org.ein }}</small>
+        </div>
+        <span class="badge score-badge score-{{ org.score_label|lower|replace(' ', '-') }} fs-6">{{ org.score_label }} ({{ org.score }})</span>
+    </div>
+    <div class="card-body">
+        {% if org.propublica_url %}
+        <a href="{{ org.propublica_url }}" target="_blank" class="btn btn-sm btn-outline-info mb-3">
+            <i class="bi bi-box-arrow-up-right"></i> View on ProPublica
+        </a>
+        {% endif %}
+
+        <div class="row">
+            <!-- Financials -->
+            <div class="col-md-6">
+                {% if org.latest_filing %}
+                <h5>Financials (FY {{ org.latest_filing.tax_year }})</h5>
+                <table class="table table-sm">
+                    <tbody>
+                        <tr><td class="text-muted">Revenue</td><td class="text-end fw-bold">{{ org.latest_filing.revenue|dollar }}</td></tr>
+                        <tr><td class="text-muted">Contributions</td><td class="text-end">{{ org.latest_filing.contributions|dollar }}</td></tr>
+                        <tr><td class="text-muted">Total Assets</td><td class="text-end">{{ org.latest_filing.assets|dollar }}</td></tr>
+                        <tr><td class="text-muted">Total Expenses</td><td class="text-end">{{ org.latest_filing.expenses|dollar }}</td></tr>
+                        <tr><td class="text-muted">Grants Paid</td><td class="text-end">{{ org.latest_filing.grants_paid|dollar }}</td></tr>
+                        <tr><td class="text-muted">Net Assets</td><td class="text-end">{{ org.latest_filing.net_assets|dollar }}</td></tr>
+                    </tbody>
+                </table>
+                {% else %}
+                <p class="text-muted">No financial data available.</p>
+                {% endif %}
+
+                <!-- Revenue Trend -->
+                {% if org.filings|length > 1 %}
+                <h5 class="mt-4">Revenue Trend</h5>
+                {% set max_rev = [] %}
+                {% for fl in org.filings %}
+                    {% if fl.revenue and (not max_rev or fl.revenue > max_rev[0]) %}
+                        {% if max_rev %}{% set _ = max_rev.pop() %}{% endif %}
+                        {% set _ = max_rev.append(fl.revenue) %}
+                    {% endif %}
+                {% endfor %}
+                {% for fl in org.filings %}
+                <div class="d-flex align-items-center mb-1">
+                    <span class="text-muted me-2" style="width:50px;">FY {{ fl.tax_year }}</span>
+                    <div class="revenue-bar-container flex-grow-1">
+                        {% if fl.revenue and max_rev %}
+                        <div class="revenue-bar" style="width: {{ (fl.revenue / max_rev[0] * 100)|int }}%"></div>
+                        {% endif %}
+                    </div>
+                    <span class="ms-2 text-muted small" style="width:60px;">{{ fl.revenue|short }}</span>
+                </div>
+                {% endfor %}
+                {% endif %}
+            </div>
+
+            <!-- Officers -->
+            <div class="col-md-6">
+                {% if org.officers %}
+                <h5>Key People ({{ org.officers|length }})</h5>
+                <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr><th>Name</th><th>Title</th><th class="text-end">Comp.</th><th class="text-end">Hrs/Wk</th></tr>
+                        </thead>
+                        <tbody>
+                            {% for o in org.officers %}
+                            <tr>
+                                <td>{{ o.name }}</td>
+                                <td><small>{{ o.title }}</small></td>
+                                <td class="text-end">{{ o.compensation|dollar if o.compensation else '--' }}</td>
+                                <td class="text-end">{{ o.hours_per_week if o.hours_per_week else '--' }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted">No officer data available. Officers are extracted from XML filings when available.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick actions -->
+<div class="row g-3">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <h6>Find Who Funds This Organization</h6>
+                <form action="{{ url_for('funders') }}" method="post">
+                    <input type="hidden" name="name" value="{{ org.name }}">
+                    <input type="hidden" name="ein" value="{{ org.ein }}">
+                    <input type="hidden" name="state" value="{{ org.state }}">
+                    <button type="submit" class="btn btn-success btn-sm">
+                        <i class="bi bi-cash-stack"></i> Find Funders
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <h6>List Grants (if foundation)</h6>
+                <form action="{{ url_for('grants') }}" method="post">
+                    <input type="hidden" name="ein" value="{{ org.ein }}">
+                    <input type="hidden" name="name" value="{{ org.name }}">
+                    <button type="submit" class="btn btn-info btn-sm text-white">
+                        <i class="bi bi-list-check"></i> List Grants
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

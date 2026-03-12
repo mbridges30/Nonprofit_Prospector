@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+
+{% block title %}Funders of {{ org_name }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h2>Funder Prospect List</h2>
+        <p class="text-muted mb-0">
+            Target: <strong>{{ org_name }}</strong>
+            {% if org_ein %} (EIN: {{ org_ein }}){% endif %}
+            | {{ funders|length }} funders identified
+        </p>
+    </div>
+    <div>
+        {% if task_id %}
+        <a href="{{ url_for('download', result_type='funders', task_id=task_id) }}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-download"></i> CSV
+        </a>
+        {% endif %}
+        <a href="{{ url_for('home') }}" class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-arrow-left"></i> New Search
+        </a>
+    </div>
+</div>
+
+{% if funders %}
+<div class="table-responsive">
+    <table class="table table-hover table-sm align-middle">
+        <thead class="table-dark">
+            <tr>
+                <th>#</th>
+                <th>Priority</th>
+                <th>Foundation</th>
+                <th class="text-end">Grants to Target</th>
+                <th class="text-end">Total Giving</th>
+                <th>State</th>
+                <th class="text-end"># Grants</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for funder in funders %}
+            <tr>
+                <td>{{ loop.index }}</td>
+                <td><span class="badge score-badge score-{{ funder.score_label|lower|replace(' ', '-') }}">{{ funder.score_label }}</span></td>
+                <td>
+                    <a href="{{ url_for('funder_detail', ein=funder.ein) }}" class="text-decoration-none fw-semibold">
+                        {{ funder.name }}
+                    </a>
+                    <small class="text-muted d-block">{{ funder.city }}, {{ funder.state }}</small>
+                </td>
+                <td class="text-end">
+                    {{ sum_amounts(funder.grants_to_target)|short }}
+                </td>
+                <td class="text-end">
+                    {{ (funder.total_giving or sum_amounts(funder.all_grants))|short }}
+                </td>
+                <td>{{ funder.state }}</td>
+                <td class="text-end">{{ funder.all_grants|length }}</td>
+                <td>
+                    <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#grants-{{ loop.index }}" title="Show grants">
+                        <i class="bi bi-chevron-down"></i>
+                    </button>
+                </td>
+            </tr>
+            <tr class="collapse" id="grants-{{ loop.index }}">
+                <td colspan="8" class="bg-light">
+                    {% if funder.grants_to_target %}
+                    <strong class="small">Grants to Target/Similar Orgs:</strong>
+                    <ul class="list-unstyled mb-2 small">
+                        {% for g in funder.grants_to_target %}
+                        <li>{{ g.recipient_name }}: {{ g.amount|dollar }} ({{ g.tax_year }}){% if g.purpose %} - {{ g.purpose[:80] }}{% endif %}</li>
+                        {% endfor %}
+                    </ul>
+                    {% endif %}
+                    {% if funder.all_grants %}
+                    <strong class="small">Top Grants ({{ funder.all_grants|length }} total):</strong>
+                    <ul class="list-unstyled mb-0 small">
+                        {% for g in funder.all_grants|sort(attribute='amount', reverse=True) %}
+                        {% if loop.index <= 5 %}
+                        <li>{{ g.recipient_name }}{% if g.recipient_state %} ({{ g.recipient_state }}){% endif %}: {{ g.amount|dollar }}</li>
+                        {% endif %}
+                        {% endfor %}
+                        {% if funder.all_grants|length > 5 %}
+                        <li class="text-muted">... and {{ funder.all_grants|length - 5 }} more</li>
+                        {% endif %}
+                    </ul>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="alert alert-info">
+    No funders found. Try a different organization name or broader search.
+</div>
+{% endif %}
+{% endblock %}
