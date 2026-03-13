@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-990 Prospect Explorer - CLI Tool
+Foundation Finder - CLI Tool
 Finds mission-adjacent nonprofits and builds prioritized prospect lists
 using ProPublica Nonprofit Explorer API and IRS 990 data.
 
@@ -23,7 +23,7 @@ from src.core.cache import FilingCache
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="prospect-explorer",
-        description="990 Prospect Explorer - Find mission-adjacent nonprofits and their funders",
+        description="Foundation Finder - Find mission-adjacent nonprofits and their funders",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:

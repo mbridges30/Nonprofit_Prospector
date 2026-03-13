@@ -1,4 +1,4 @@
-/* 990 Prospect Explorer - Client JS */
+/* Foundation Finder - Client JS */
 
 /**
  * Poll a background task for completion.

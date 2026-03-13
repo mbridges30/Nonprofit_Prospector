@@ -1,4 +1,4 @@
-# 990 Prospect Explorer
+# Foundation Finder
 
 Find mission-adjacent nonprofits and build prioritized prospect lists using
 ProPublica Nonprofit Explorer API and IRS 990 data.

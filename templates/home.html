@@ -1,101 +1,127 @@
 {% extends "base.html" %}
 
-{% block title %}990 Prospect Explorer - Home{% endblock %}
+{% block title %}Foundation Finder{% endblock %}
 
 {% block content %}
-<div class="text-center mb-4">
-    <h1 class="display-6">990 Prospect Explorer</h1>
-    <p class="lead text-muted">Find who funds nonprofits like yours using public IRS 990 data.</p>
+<!-- ===== Hero Section ===== -->
+<div class="text-center mb-5 pt-3">
+    <h1 class="display-5 fw-bold">Foundation Finder</h1>
+    <p class="lead text-muted mb-3">Find foundations that fund nonprofits like yours.</p>
+    <p class="text-muted mx-auto" style="max-width: 600px;">
+        Enter your nonprofit's name or EIN. We'll find similar organizations,
+        identify their funders, and generate a prospect report.
+    </p>
+    <a href="{{ url_for('profile_new') }}" class="btn btn-success btn-lg mt-2 px-5 shadow-sm">
+        <i class="bi bi-search-heart"></i> Start Your Search
+    </a>
 </div>
 
 <!-- ===== How It Works ===== -->
-<div class="bg-light rounded-3 p-4 mb-4">
+<div class="bg-light rounded-3 p-4 mb-5">
     <h5 class="text-center mb-3"><i class="bi bi-lightbulb"></i> How It Works</h5>
     <div class="row g-3 text-center">
         <div class="col-md-3">
             <div class="workflow-step">
                 <div class="workflow-number">1</div>
-                <h6>Create a Profile</h6>
-                <small class="text-muted">Enter your org's EIN to auto-generate a search profile with keywords and NTEE codes.</small>
+                <h6>Find Your Org</h6>
+                <small class="text-muted">Search for your nonprofit by name or EIN. We'll pull your details from ProPublica.</small>
             </div>
         </div>
         <div class="col-md-3">
             <div class="workflow-step">
                 <div class="workflow-number">2</div>
-                <h6>Run the Pipeline</h6>
-                <small class="text-muted">Finds organizations similar to yours, then discovers which foundations fund them.</small>
+                <h6>Discover Similar Nonprofits</h6>
+                <small class="text-muted">We search for organizations with a similar mission, keywords, and NTEE codes.</small>
             </div>
         </div>
         <div class="col-md-3">
             <div class="workflow-step">
                 <div class="workflow-number">3</div>
-                <h6>Review Prospects</h6>
-                <small class="text-muted">See ranked funders with evidence: who they funded, how much, and mission alignment.</small>
+                <h6>See Who Funds Them</h6>
+                <small class="text-muted">We identify foundations that have funded those similar orgs using 990 data and web research.</small>
             </div>
         </div>
         <div class="col-md-3">
             <div class="workflow-step">
                 <div class="workflow-number">4</div>
-                <h6>Draft a Letter</h6>
-                <small class="text-muted">AI generates a first-draft grant letter tailored to each foundation's giving patterns.</small>
+                <h6>Get Your Report</h6>
+                <small class="text-muted">Review ranked foundation prospects with evidence, financials, programs, and contact info.</small>
             </div>
         </div>
     </div>
 </div>
 
-<!-- ===== New Prospect Search (prominent entry point) ===== -->
-<div class="row mb-4">
-    <div class="col-lg-8 mx-auto">
-        <a href="{{ url_for('profile_new') }}" class="card text-decoration-none border-success shadow-sm">
-            <div class="card-body text-center py-4">
-                <i class="bi bi-search-heart fs-1 text-success"></i>
-                <h4 class="mt-2 text-success">New Prospect Search</h4>
-                <p class="text-muted mb-0">Search for your nonprofit, confirm details, and generate a foundation prospect report.</p>
-            </div>
-        </a>
-    </div>
-</div>
-
-<!-- ===== Getting Started (no profiles yet) ===== -->
-{% if not profiles %}
-<div class="alert alert-info mb-4">
-    <i class="bi bi-info-circle"></i> <strong>Getting Started:</strong>
-    You don't have any search profiles yet. Start by entering your organization's EIN below to generate one, or use the <a href="{{ url_for('profile_new') }}">New Prospect Search</a> above.
-</div>
-
+<!-- ===== Quick Tools ===== -->
 <div class="row g-4 mb-4">
-    <div class="col-lg-6 mx-auto">
-        <div class="card border-secondary">
-            <div class="card-header bg-secondary text-white">
-                <i class="bi bi-file-earmark-plus"></i> Step 1: Generate Your Search Profile
+    <!-- Org Lookup -->
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header">
+                <i class="bi bi-building"></i> Quick Org Lookup
             </div>
             <div class="card-body">
-                <p class="text-muted small">Enter your nonprofit's EIN. We'll look it up on ProPublica and auto-generate a search profile with keywords, NTEE codes, and mission statement.</p>
-                <form action="{{ url_for('profile_gen') }}" method="post">
-                    <div class="input-group">
-                        <input type="text" name="ein" class="form-control form-control-lg" placeholder="Your organization's EIN (e.g. 33-4593800)" required>
-                        <button type="submit" class="btn btn-secondary btn-lg">
-                            <i class="bi bi-magic"></i> Generate
+                <p class="card-text text-muted small">Look up any nonprofit by EIN to see financial details, officers, and filing history.</p>
+                <form id="org-lookup-form" class="row g-2">
+                    <div class="col-8">
+                        <input type="text" id="org-ein-input" class="form-control" placeholder="e.g. 91-1508191" required>
+                    </div>
+                    <div class="col-4">
+                        <button type="submit" class="btn btn-outline-secondary w-100">
+                            <i class="bi bi-arrow-right"></i> Go
                         </button>
                     </div>
                 </form>
             </div>
         </div>
     </div>
-</div>
-{% endif %}
 
-<!-- ===== Main Action: Full Pipeline ===== -->
-{% if profiles %}
-<div class="row g-4 mb-4">
-    <div class="col-lg-10 mx-auto">
-        <div class="card border-warning shadow-sm">
-            <div class="card-header bg-warning text-dark fs-5">
-                <i class="bi bi-diagram-3"></i> Run Full Pipeline
-                <small class="float-end text-dark-emphasis fw-normal">Recommended starting point</small>
+    <!-- Grant Draft -->
+    {% if profiles %}
+    <div class="col-md-6">
+        <div class="card h-100 border-danger">
+            <div class="card-header bg-danger text-white">
+                <i class="bi bi-pencil-square"></i> Grant Draft (AI)
             </div>
             <div class="card-body">
-                <p class="text-muted">Select your search profile and run the pipeline. It will find similar nonprofits, identify their funders, cross-reference board members, and rank prospects by relevance.</p>
+                <p class="card-text text-muted small">Generate a first-draft grant letter to a foundation based on their giving patterns. Requires Anthropic API key.</p>
+                <form action="{{ url_for('draft') }}" method="post">
+                    <div class="mb-3">
+                        <label class="form-label">Foundation EIN</label>
+                        <input type="text" name="ein" class="form-control" placeholder="e.g. 56-2206524" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Your Profile</label>
+                        <select name="profile" class="form-select" required>
+                            {% for key, p in profiles.items() %}
+                            <option value="{{ key }}">{{ p.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-danger w-100 text-white">
+                        <i class="bi bi-pencil-square"></i> Generate Draft
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- ===== Saved Profiles (collapsed) ===== -->
+{% if profiles %}
+<div class="mb-4">
+    <p class="text-center">
+        <a class="btn btn-sm btn-outline-warning" data-bs-toggle="collapse" href="#savedProfiles">
+            <i class="bi bi-folder2-open"></i> Already have a saved profile? Run it here
+        </a>
+    </p>
+    <div class="collapse" id="savedProfiles">
+        <div class="card border-warning">
+            <div class="card-header bg-warning text-dark">
+                <i class="bi bi-diagram-3"></i> Run Full Pipeline
+            </div>
+            <div class="card-body">
+                <p class="text-muted small">Select a previously saved search profile and run the pipeline.</p>
                 <form action="{{ url_for('pipeline') }}" method="post">
                     <div class="row g-3 align-items-end">
                         <div class="col-md-4">
@@ -150,85 +176,6 @@
 </div>
 {% endif %}
 
-<!-- ===== Tools Row ===== -->
-<div class="row g-4 mb-4">
-    <!-- Profile Generator (always visible) -->
-    {% if profiles %}
-    <div class="col-md-6 col-lg-4">
-        <div class="card h-100 border-secondary">
-            <div class="card-header bg-secondary text-white">
-                <i class="bi bi-file-earmark-plus"></i> Generate Search Profile
-            </div>
-            <div class="card-body">
-                <p class="card-text text-muted small">Create a new search profile from any org's EIN. Extracts keywords, NTEE codes, and mission from ProPublica.</p>
-                <form action="{{ url_for('profile_gen') }}" method="post">
-                    <div class="mb-3">
-                        <label class="form-label">Organization EIN</label>
-                        <input type="text" name="ein" class="form-control" placeholder="e.g. 33-4593800" required>
-                    </div>
-                    <button type="submit" class="btn btn-secondary w-100">
-                        <i class="bi bi-magic"></i> Generate Profile
-                    </button>
-                </form>
-            </div>
-        </div>
-    </div>
-    {% endif %}
-
-    <!-- Org Lookup -->
-    <div class="col-md-6 col-lg-4">
-        <div class="card h-100">
-            <div class="card-header">
-                <i class="bi bi-building"></i> Quick Org Lookup
-            </div>
-            <div class="card-body">
-                <p class="card-text text-muted small">Look up any nonprofit by EIN to see financial details, officers, and filing history.</p>
-                <form id="org-lookup-form" class="row g-2">
-                    <div class="col-8">
-                        <input type="text" id="org-ein-input" class="form-control" placeholder="e.g. 91-1508191" required>
-                    </div>
-                    <div class="col-4">
-                        <button type="submit" class="btn btn-outline-secondary w-100">
-                            <i class="bi bi-arrow-right"></i> Go
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <!-- Grant Draft -->
-    {% if profiles %}
-    <div class="col-md-6 col-lg-4">
-        <div class="card h-100 border-danger">
-            <div class="card-header bg-danger text-white">
-                <i class="bi bi-pencil-square"></i> Grant Draft (AI)
-            </div>
-            <div class="card-body">
-                <p class="card-text text-muted small">Generate a first-draft grant letter to a foundation based on their giving patterns. Requires Anthropic API key.</p>
-                <form action="{{ url_for('draft') }}" method="post">
-                    <div class="mb-3">
-                        <label class="form-label">Foundation EIN</label>
-                        <input type="text" name="ein" class="form-control" placeholder="e.g. 56-2206524" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Your Profile</label>
-                        <select name="profile" class="form-select" required>
-                            {% for key, p in profiles.items() %}
-                            <option value="{{ key }}">{{ p.name }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <button type="submit" class="btn btn-danger w-100 text-white">
-                        <i class="bi bi-pencil-square"></i> Generate Draft
-                    </button>
-                </form>
-            </div>
-        </div>
-    </div>
-    {% endif %}
-</div>
-
 <!-- ===== Advanced Tools (collapsed) ===== -->
 <div class="mb-4">
     <p class="text-center">
@@ -237,7 +184,7 @@
         </a>
     </p>
     <div class="collapse" id="advancedTools">
-        <p class="text-center text-muted small mb-3">These tools let you run each layer of the pipeline individually. Most users should use the Full Pipeline above instead.</p>
+        <p class="text-center text-muted small mb-3">These tools let you run each layer of the pipeline individually. Most users should use the main search above instead.</p>
         <div class="row g-4">
             <!-- Layer 1: Quick Search -->
             <div class="col-md-6 col-lg-4">

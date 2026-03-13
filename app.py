@@ -1,5 +1,5 @@
 """
-Flask web UI for the 990 Prospect Explorer.
+Flask web UI for the Foundation Finder.
 Wraps all existing CLI functionality with a browser-based interface.
 """
 
@@ -1054,7 +1054,7 @@ def before_request():
 # ---------------------------------------------------------------------------
 
 if __name__ == "__main__":
-    print(f"\n  990 Prospect Explorer - Web UI")
+    print(f"\n  Foundation Finder - Web UI")
     print(f"  http://127.0.0.1:{config.PORT}")
     print(f"  Press Ctrl+C to stop\n")
 

@@ -1,5 +1,5 @@
 """
-Data models for the 990 Prospect Explorer.
+Data models for the Foundation Finder.
 All data classes used across the application.
 """
 

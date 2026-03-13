@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}990 Prospect Explorer{% endblock %}</title>
+    <title>{% block title %}Foundation Finder{% endblock %}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
@@ -12,13 +12,18 @@
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container">
             <a class="navbar-brand" href="{{ url_for('home') }}">
-                <i class="bi bi-search-heart"></i> 990 Prospect Explorer
+                <i class="bi bi-search-heart"></i> Foundation Finder
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('profile_new') }}">
+                            <i class="bi bi-search-heart"></i> New Search
+                        </a>
+                    </li>
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('home') }}">
                             <i class="bi bi-house"></i> Home
@@ -46,7 +51,7 @@
 
     <footer class="bg-light border-top py-3 mt-auto">
         <div class="container text-center text-muted small">
-            990 Prospect Explorer | Data from ProPublica Nonprofit Explorer &amp; IRS 990 E-Filings
+            Foundation Finder | Powered by ProPublica Nonprofit Explorer &amp; IRS 990 E-Filings
         </div>
     </footer>
 

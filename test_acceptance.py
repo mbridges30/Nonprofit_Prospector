@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-990 Prospect Explorer - Acceptance Test Suite
+Foundation Finder - Acceptance Test Suite
 Tests each priority from Spec v2 using real nonprofit data.
 
 Run from the project root:
