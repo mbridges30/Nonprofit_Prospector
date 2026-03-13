@@ -565,3 +565,201 @@ Expected results at depth 2: 15-25 comparable orgs, 5-15 funder prospects includ
 - lxml (XML/HTML parsing)
 - python-dotenv (env var management)
 - No database required beyond SQLite cache
+
+---
+
+## 13. Future — User-Configurable Filters
+
+### The Problem
+
+All web scraping filters, keyword lists, URL patterns, fuzzy matching thresholds, and scoring parameters are currently **hardcoded** across 5 Python source files. This means:
+
+- Tuning filter behavior requires editing Python source code
+- Different sectors (arts nonprofits vs STEM vs social services) may need different keyword sets
+- Deploying the tool for a new client requires a developer to adjust thresholds
+- There's no way for power users to experiment with settings without risking breakage
+
+Over **100 hardcoded values** control filtering behavior across the codebase.
+
+### Inventory of Configurable Values
+
+#### `src/api/donor_scraper.py`
+
+| Variable / Function | Type | Count | Description |
+|---------------------|------|-------|-------------|
+| `_DONOR_PATHS` | URL patterns | 19 | Paths appended to org websites to find donor pages (e.g., `/donors`, `/supporters`, `/annual-report`) |
+| `_TIER_PATTERNS` | Regex patterns | 6 | Patterns to detect donation tier headings (`$100,000+`, `Platinum`, `Leadership Circle`) |
+| `_DONOR_PAGE_KEYWORDS` | Keywords | 12 | Words that validate a page is a donor page (`donor`, `supporter`, `funder`, `grateful`, etc.) |
+| `_NAV_WORDS` | Blocklist | 38+ | Navigation/UI words to skip during extraction (`home`, `about`, `contact`, `login`, etc.) |
+| `_looks_like_org_name()` | Keywords | 28 | Org indicator words (`foundation`, `fund`, `trust`, `institute`, `united way`, etc.) |
+| `_is_plausible_donor_name()` | Thresholds | 4 | Min words (2), max words (8), max chars (80), capitalization threshold (60%) |
+| `_is_plausible_donor_name()` | Patterns | 31 | Sentence indicator words (20) and UI rejection patterns (11) |
+| Social media blocklist | Domains | 11 | `facebook`, `twitter`, `instagram`, `linkedin`, `youtube`, etc. |
+| Alt text blocklist | Keywords | 7 | Generic image alt text to skip (`logo`, `icon`, `placeholder`, etc.) |
+
+#### `src/api/web_scraper.py`
+
+| Variable / Function | Type | Count | Description |
+|---------------------|------|-------|-------------|
+| `_GRANT_PAGE_PATHS` | URL patterns | 15 | Paths to find foundation grant pages (`/grants`, `/grantees`, `/what-we-fund`, etc.) |
+| Grant validation keywords | Keywords | 7 | Words that confirm a page lists grants (`grant`, `grantee`, `recipient`, `awarded`, etc.) |
+| `_is_likely_foundation()` | Junk patterns | 26 | Text patterns to reject (`share on`, `click here`, `privacy policy`, `powered by`, etc.) |
+| `_is_likely_foundation()` | Funder keywords | 13 | Required indicator words (`foundation`, `fund`, `trust`, `endowment`, `philanthropi`, etc.) |
+| `_is_likely_foundation()` | Thresholds | 2 | Min length (5 chars), max length (100 chars) |
+| `_looks_like_org_or_grantee()` | Blocklist | 35+ | Nav words, first-word rejections, sentence markers |
+| `_looks_like_org_or_grantee()` | Threshold | 1 | Capitalization threshold (50% of words) |
+| Grantee matching | Threshold | 1 | Fuzzy match threshold for grant page → comp org matching (75) |
+
+#### `src/core/matching.py`
+
+| Value | Default | Description |
+|-------|---------|-------------|
+| Default fuzzy match threshold | 70 | General name-to-name comparison |
+| Partial ratio minimum | 80 | Minimum for partial string matching |
+| Substring similarity | 50% | Threshold for substring containment matches |
+| Name normalization patterns | 4 | Regex patterns stripping suffixes like `Inc`, `LLC`, `Corporation` |
+
+#### `src/core/scoring.py`
+
+| Scoring System | Dimensions | Thresholds | Labels |
+|----------------|-----------|------------|--------|
+| Organization (0-10) | 4 (revenue, contributions, assets, grants paid) | 10 financial thresholds | 4 labels (HIGH PRIORITY → SMALL) |
+| Funder (0-22) | 8 (target giving, grant count, web evidence, sector, capacity, total giving, portfolio, geography) | 20+ thresholds | 5 labels (TOP PROSPECT → LOW) |
+
+### Recommended Configuration File
+
+A `config/scraper_config.json` file could externalize these values. The pattern is already proven in the project — `data/foundation_sources.json` uses a similar approach for pre-configured foundation scraping targets.
+
+**Proposed structure:**
+
+```json
+{
+  "url_patterns": {
+    "donor_page_paths": ["/donors", "/supporters", "/funders", "..."],
+    "grant_page_paths": ["/grants", "/grantees", "/what-we-fund", "..."]
+  },
+  "keywords": {
+    "donor_page_indicators": ["donor", "supporter", "funder", "..."],
+    "org_indicators": ["foundation", "fund", "trust", "..."],
+    "funder_indicators": ["foundation", "fund", "trust", "endowment", "..."],
+    "navigation_blocklist": ["home", "about", "contact", "..."],
+    "junk_patterns": ["share on", "click here", "privacy policy", "..."]
+  },
+  "thresholds": {
+    "fuzzy_match": {
+      "default": 70,
+      "grantee_matching": 75,
+      "partial_ratio_min": 80,
+      "substring_similarity": 0.5
+    },
+    "text_validation": {
+      "min_donor_name_words": 2,
+      "max_donor_name_words": 8,
+      "max_donor_name_chars": 80,
+      "min_foundation_name_chars": 5,
+      "max_foundation_name_chars": 100,
+      "org_capitalization_threshold": 0.6,
+      "grantee_capitalization_threshold": 0.5
+    }
+  },
+  "limits": {
+    "comp_orgs_to_scrape": 20,
+    "foundations_to_investigate": 30
+  },
+  "scoring": {
+    "organization": {
+      "revenue": [[10000000, 3], [1000000, 2], [200000, 1]],
+      "contributions": [[5000000, 3], [500000, 2], [50000, 1]],
+      "assets": [[10000000, 2], [1000000, 1]],
+      "grants_paid": [[500000, 2], [50000, 1]],
+      "labels": [[7, "HIGH PRIORITY"], [4, "STRONG"], [2, "MODERATE"]]
+    },
+    "funder": { "..." : "..." }
+  }
+}
+```
+
+### Implementation Approach
+
+1. **Load at startup with hardcoded fallbacks**: If `config/scraper_config.json` exists, load it. Otherwise, use current hardcoded defaults. This ensures zero breaking changes.
+2. **Each filter function accepts an optional config dict**: Functions like `_is_likely_foundation(name, config=None)` would read from the config if provided, otherwise use their internal defaults.
+3. **Partial overrides**: Users only need to include sections they want to change. Missing sections fall back to defaults.
+4. **Per-profile overrides**: Search profiles (`profiles/*.json`) could optionally include a `filter_overrides` section for sector-specific tuning.
+
+---
+
+## 14. Future — AI Enhancement Opportunities
+
+### Current AI Features
+
+Foundation Finder currently has two AI-powered features, both using Claude Sonnet and requiring an `ANTHROPIC_API_KEY`:
+
+| Feature | File | What It Does |
+|---------|------|-------------|
+| **Mission Alignment Scoring** | `src/core/ai_scoring.py` | Scores foundation-to-org alignment (0-100) with a one-sentence rationale. Applied to top 20 funders via `--score` flag. |
+| **Grant Letter Drafting** | `src/commands/draft.py` | Generates a first-draft grant application letter incorporating the foundation's giving patterns and the target org's mission. |
+
+Both features are **optional** — the tool works fully without an API key. AI scoring is gated behind a checkbox in the web UI and a `--score` flag in the CLI.
+
+### Opportunity 1: AI-Powered Web Scraping Filters
+
+**Problem**: The current filter functions (`_is_likely_foundation()`, `_is_plausible_donor_name()`) use regex patterns and keyword matching. They work well for standard cases but produce false positives on unusual page layouts and false negatives for foundations without standard naming conventions.
+
+**Enhancement**: Use an LLM to classify scraped text as a legitimate organization name vs. navigation text, statistics, or UI elements. A small, fast model could evaluate ambiguous cases that regex filters can't confidently classify.
+
+**Impact**: Higher precision on donor page extraction, fewer missed foundations, reduced false positives in reports.
+
+### Opportunity 2: Grant Purpose Analysis & Clustering
+
+**Problem**: Schedule I grants include a `purpose` field (e.g., "For general operating support" or "STEM education program for underserved youth"), but this text is currently displayed raw with no analysis.
+
+**Enhancement**: AI could analyze all grants from a foundation to identify funding themes, calculate sector allocation percentages, and detect trends over time. Example output: *"This foundation primarily funds STEM education (62%), youth development (23%), and arts programs (15%). STEM funding has increased 40% over the last 3 years."*
+
+**Impact**: Gives users a clear picture of foundation priorities without manually reading hundreds of grant descriptions.
+
+### Opportunity 3: Foundation Fit Narrative
+
+**Problem**: The current mission alignment score (0-100) is a single number with a brief rationale. Users need more context to craft an effective approach.
+
+**Enhancement**: Generate a detailed fit narrative that references specific evidence — matching grants, geographic overlap, mission language similarity, shared board connections. Example: *"Approach the Simons Foundation about your after-school math program. They funded 3 similar programs in WA in 2023-2024, totaling $450K. Their stated priority in 'math education for underrepresented students' aligns directly with your mission."*
+
+**Impact**: Transforms the report from a data dump into actionable outreach guidance.
+
+### Opportunity 4: Board & Officer Intelligence
+
+**Problem**: Officer names and titles are extracted from 990 XML Part VII and displayed in the report, but there's no analysis of what this data means.
+
+**Enhancement**: AI could analyze board composition to identify members with relevant expertise (education backgrounds for education nonprofits, etc.), flag compensation patterns that indicate foundation priorities, and — most valuably — identify officers who serve on multiple foundation boards as potential connectors or advocates.
+
+**Impact**: Helps users identify warm introduction paths and understand foundation governance.
+
+### Opportunity 5: Predictive Giving Analysis
+
+**Problem**: Multi-year filing data is available (revenue, assets, grants paid across multiple filings), but the tool only shows the latest year's snapshot.
+
+**Enhancement**: AI could analyze giving trajectories to project whether a foundation is increasing, stable, or decreasing its grant-making. It could flag foundations shifting focus toward (or away from) the user's sector based on changing grant purpose patterns.
+
+**Impact**: Helps users prioritize foundations with growing alignment rather than declining interest.
+
+### Opportunity 6: Automated Outreach Strategy
+
+**Problem**: The report ranks foundations by score but doesn't advise on approach strategy.
+
+**Enhancement**: Given the full ranked funder list, AI could suggest: approach order and timing (which foundations to contact first), personalized talking points per foundation (based on their specific grants and stated priorities), and which evidence points to emphasize in each conversation.
+
+**Impact**: Turns the prospect report into a ready-to-execute outreach plan.
+
+### Opportunity 7: Executive Report Summarization
+
+**Problem**: Full pipeline reports can contain 10-20 funder cards with detailed evidence. Board members and executives need a quick overview.
+
+**Enhancement**: Generate a 1-page executive summary: *"We identified 12 strong foundation prospects for The Math Agency. Your top 3 are the Simons Foundation (score 18/22, 4 grants to similar orgs totaling $1.2M), the Ballmer Group (score 15/22, confirmed on 3 comp org donor pages), and the Raikes Foundation (score 12/22, same-state STEM funder). Recommended next steps: ..."*
+
+**Impact**: Makes the tool's output immediately useful for board presentations, team briefings, and fundraising strategy meetings.
+
+### Implementation Considerations
+
+- **Cost control**: AI calls add API costs. Features should be optional and gated behind flags, with clear cost estimates (e.g., "AI scoring 20 funders ≈ $0.15").
+- **Caching**: AI-generated analysis should be cached alongside pipeline results to avoid re-processing.
+- **Progressive enhancement**: Each AI feature should be independent — users can enable any combination without requiring all of them.
+- **Model selection**: Different features may warrant different models. Scoring and classification can use faster/cheaper models; narrative generation benefits from more capable models.
